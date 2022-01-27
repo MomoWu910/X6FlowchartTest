@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "moduleResolution": "node",
+        "lib": [
+            "es2015",
+            "dom"
+        ],
+        "target": "es6",
+        "noImplicitAny": false,
+        "module": "commonjs",
+        "strict": true,
+        "baseUrl": ".",
+        "paths": {},
+        "types": [
+            "webpack-env",
+            "node"
+        ]
+    }
+}
