@@ -42,6 +42,7 @@
     "dependencies": {
         "@antv/x6": "^1.30.0",
         "@babel/polyfill": "^7.12.1",
+        "@types/insert-css": "^2.0.1",
         "insert-css": "^2.0.0",
         "loadash": "^1.0.0"
     }
