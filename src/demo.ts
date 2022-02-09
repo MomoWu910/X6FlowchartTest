@@ -1,5 +1,6 @@
 import { Graph, Shape, Addon } from '@antv/x6';
 import { insertCss } from 'insert-css';
+import { cssConfig } from './constants/config';
 
 /* html css 相關樣式建立
 *   stencilContainer: 左側面板
@@ -15,62 +16,7 @@ const preWork = () => {
     container.appendChild(stencilContainer);
     container.appendChild(graphContainer);
 
-    insertCss(`
-        #container {
-            display: flex;
-            border: 1px solid #dfe3e8;
-        }
-        #stencil {
-            width: 180px;
-            height: 100%;
-            position: relative;
-            border-right: 1px solid #dfe3e8;
-        }
-        #graph-container {
-            width: calc(100% - 180px);
-            height: 100%;
-        }
-        .x6-widget-stencil  {
-            background-color: #666;
-        }
-        .x6-widget-stencil-title {
-            color: #fff;
-            background-color: #555;
-        }
-        .x6-widget-stencil-title:hover {
-            color: #eee;
-        }
-        .x6-widget-stencil-group-title {
-            color: #fff !important;
-            background-color: #555 !important;
-        }
-        .x6-widget-stencil-group-title:hover {
-            color: #eee !important;
-        }
-        .x6-widget-transform {
-            margin: -1px 0 0 -1px;
-            padding: 0px;
-            border: 1px solid #239edd;
-        }
-        .x6-widget-transform > div {
-            border: 1px solid #239edd;
-        }
-        .x6-widget-transform > div:hover {
-            background-color: #3dafe4;
-        }
-        .x6-widget-transform-active-handle {
-            background-color: #3dafe4;
-        }
-        .x6-widget-transform-resize {
-            border-radius: 0;
-        }
-        .x6-widget-selection-inner {
-            border: 1px solid #239edd;
-        }
-        .x6-widget-selection-box {
-            opacity: 0;
-        }
-    `);
+    insertCss(cssConfig);
 }
 
 export default class Demo {
@@ -78,45 +24,56 @@ export default class Demo {
     public stencil: any;
 
     constructor() {
-        preWork();
-        this.initGraph();
-        this.initStencil();
-        this.initEvent();
-        this.initGraphNode();
-        this.initStencilBasicNode();
-        this.initStencilSpecialNode();
+        preWork();                          // 設定css樣式
+        this.initGraph();                   // 初始化畫布
+        this.initStencil();                 // 初始化左側面板
+        this.initEvent();                   // 初始化鍵盤、滑鼠事件
+        this.initGraphNode();               // 初始化各種節點設定
+        this.initStencilBasicNode();        // 建立面板上基礎流程圖節點
+        this.initStencilSpecialNode();      // 建立面板上系統設計圖節點
     }
 
     // #region 初始化画布
     public initGraph() {
         const graph = new Graph({
-            container: document.getElementById('graph-container')!,
-            grid: true,
-            background: { color: '#222' },
-            mousewheel: {
+            container: document.getElementById('graph-container')!, // 画布的容器
+            background: { color: '#2A2A2A' },                       // 背景
+            grid: {                                                 // 网格
+                type: 'doubleMesh',                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
+                visible: true,
+                args: [                                             // doubleMesh 才要分主次
+                    {
+                        color: '#6e6e6e',                           // 主网格线颜色
+                        thickness: 1,                               // 主网格线宽度
+                    },
+                    {
+                        color: '#6e6e6e',                           // 次网格线颜色
+                        thickness: 1,                               // 次网格线宽度
+                        factor: 4,                                  // 主次网格线间隔
+                    },
+                ],
+            },
+            mousewheel: {                                           // 鼠标滚轮缩放
                 enabled: true,
-                zoomAtMousePosition: true,
-                modifiers: 'ctrl',
+                zoomAtMousePosition: true,                          // 是否将鼠标位置作为中心缩放
+                modifiers: 'ctrl',                                  // 需要按下修饰键并滚动鼠标滚轮时才触发画布缩放
                 minScale: 0.5,
                 maxScale: 3,
             },
-            connecting: {
-                router: {
-                    name: 'manhattan',
+            connecting: {                                           // 连线规则
+                router: {                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
+                    name: 'manhattan',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
+                },
+                connector: {                                        // 连接器
+                    name: 'normal',                                // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
                     args: {
-                        padding: 1,
+                        // radius: 8,                                  // 倒角半径
                     },
                 },
-                connector: {
-                    name: 'rounded',
-                    args: {
-                        radius: 8,
-                    },
-                },
-                anchor: 'center',
-                connectionPoint: 'anchor',
-                allowBlank: false,
-                snap: {
+                anchor: 'center',                                   // 当连接到节点时，通过 anchor 来指定被连接的节点的锚点
+                connectionPoint: 'anchor',                          // 指定连接点
+                allowBlank: false,                                  // 是否允许连接到画布空白位置的点
+                snap: {                                             // 连线的过程中距离节点或者连接桩radius时会触发自动吸附
                     radius: 20,
                 },
                 createEdge() {
@@ -133,14 +90,23 @@ export default class Demo {
                             },
                         },
                         zIndex: 0,
+                        tools: {
+                            name: 'segments',
+                            args: {
+                                snapRadius: 20,
+                                attrs: {
+                                    fill: '#444',
+                                },
+                            },
+                        },
                     })
                 },
-                validateConnection({ targetMagnet }) {
+                validateConnection({ targetMagnet }) {              // 在移动边的时候判断连接是否有效，如果返回 false，当鼠标放开的时候，不会连接到当前元素，否则会连接到当前元素。
                     return !!targetMagnet
                 },
             },
-            highlighting: {
-                magnetAdsorbed: {
+            highlighting: {                                         // 高亮选项
+                magnetAdsorbed: {                                   // 连线过程中，自动吸附到链接桩时被使用
                     name: 'stroke',
                     args: {
                         attrs: {
@@ -150,18 +116,24 @@ export default class Demo {
                     },
                 },
             },
-            resizing: true,
-            rotating: true,
-            selecting: {
+            resizing: true,                                         // 缩放节点
+            rotating: false,                                        // 旋转节点
+            selecting: {                                            // 点选/框选
                 enabled: true,
-                rubberband: true,
-                showNodeSelectionBox: true,
+                rubberband: true,                                   // 是否启用框选
+                showNodeSelectionBox: true,                         // 是否显示节点的选择框
+                showEdgeSelectionBox: true                          // 是否显示边的选择框
             },
-            snapline: true,
-            keyboard: true,
-            clipboard: true,
-            history: true,// 這行要加，才能undo redo
-        })
+            panning: {                                              // 画布是否可以拖动
+                enabled: true,
+                eventTypes: ['rightMouseDown']                      // 触发画布拖拽的行为
+            },
+            scroller: true,                                         // 滚动画布
+            snapline: true,                                         // 对齐线
+            keyboard: true,                                         // 键盘快捷键
+            clipboard: true,                                        // 剪切板
+            history: true,                                          // 撤销/重做
+        });
 
         this.graph = graph;
     }
@@ -171,10 +143,10 @@ export default class Demo {
     public initStencil() {
         const stencil = new Addon.Stencil({
             title: '流程图',
-            target: this.graph,
+            target: this.graph,                                     // 目标画布
             stencilGraphWidth: 200,
             stencilGraphHeight: 180,
-            collapsable: true,
+            collapsable: true,                                      // 是否显示全局折叠/展开按钮
             groups: [
                 {
                     title: '基础流程图',
@@ -189,7 +161,7 @@ export default class Demo {
                     },
                 },
             ],
-            layoutOptions: {
+            layoutOptions: {                                        // 布局选项
                 columns: 2,
                 columnWidth: 80,
                 rowHeight: 55,
@@ -414,17 +386,7 @@ export default class Demo {
                         fill: '#262626',
                     },
                 },
-                ports: {
-                    ...ports,
-                    items: [
-                        {
-                            group: 'top',
-                        },
-                        {
-                            group: 'bottom',
-                        },
-                    ],
-                },
+                ports: { ...ports },
             },
             true,
         )
@@ -532,20 +494,20 @@ export default class Demo {
             },
             label: '决策',
         })
-        const r5 = this.graph.createNode({
-            shape: 'custom-polygon',
-            attrs: {
-                body: {
-                    refPoints: '10,0 40,0 30,20 0,20',
-                },
-            },
-            label: '数据',
-        })
+        // const r5 = this.graph.createNode({
+        //     shape: 'custom-polygon',
+        //     attrs: {
+        //         body: {
+        //             refPoints: '10,0 40,0 30,20 0,20',
+        //         },
+        //     },
+        //     label: '数据',
+        // })
         const r6 = this.graph.createNode({
             shape: 'custom-circle',
             label: '连接',
         })
-        this.stencil.load([r1, r2, r3, r4, r5, r6], 'group1');
+        this.stencil.load([r1, r2, r3, r4, r6], 'group1');
     }
     // #endregion
 
