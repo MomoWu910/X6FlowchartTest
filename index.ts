@@ -1,3 +1,5 @@
 import Demo from './src/demo';
+import CodeControl from './src/codeControl';
 
-new Demo();
+new CodeControl();
+// new Demo();
