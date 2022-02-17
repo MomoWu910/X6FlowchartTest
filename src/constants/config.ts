@@ -15,6 +15,10 @@ export const cssConfig =
     width: calc(100% - 180px);
     height: 100%;
 }
+#code-graph-container {
+    width: 100%;
+    height: 100%;
+}
 .x6-widget-stencil  {
     background-color: #666;
 }
@@ -57,3 +61,23 @@ export const cssConfig =
 }
 `;
 // #endregion
+
+export const colorConfig = {
+    START_END_GREEN: '#008a00',
+    PROCESS_BLUE: '#1BA1E2',
+}
+
+export const zIndex = {
+    BACKGROUND_NODE: 1,
+    NODE: 2,
+    EDGE: 2,
+}
+
+export const registerName = {
+    // node
+    startOrEnd: 'startOrEnd',
+    process: 'process-rect',
+
+    // edge
+    normalEdge: 'normal-edge',
+}

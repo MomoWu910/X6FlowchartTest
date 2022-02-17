@@ -1,15 +1,16 @@
 import { Graph, Shape, Addon } from '@antv/x6';
 import { insertCss } from 'insert-css';
-import { cssConfig } from './constants/config';
+import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
 
 /* html css 相關樣式建立
 *   graphContainer: 畫板
 */
+const GRAPH_NAME = 'code-graph-container';
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
     const container = document.getElementById('container')!;
     const graphContainer = document.createElement('div');
-    graphContainer.id = 'graph-container';
+    graphContainer.id = GRAPH_NAME;
     container.appendChild(graphContainer);
 
     insertCss(cssConfig);
@@ -27,23 +28,75 @@ export default class Demo {
         this.draw();
     }
 
-    // #region 畫圖
+    // 畫圖
     public draw() {
-        this.graph.addNode({
-            x: 100,
-            y: 60,
-            shape: 'custom-rect',
-            label: '从商户平台点击大厅',
+        const startLobby = this.drawNode(100, 100, registerName.startOrEnd, { label: '从商户平台\n点击大厅' });
+        const downloadLobbyLoading = this.drawNode(100, 240, registerName.process, { label: '下载大厅loading页' });
+
+        this.drawEdge({ cell: startLobby, port: 'bottom' }, { cell: downloadLobbyLoading, port: 'top' });
+
+
+        this.graph.centerContent();
+    }
+
+    // #region 畫圖相關
+    // 畫節點
+    /**
+     * 
+     * @param posX 座標x
+     * @param posY 座標y
+     * @param shape 形狀, 預設圓角矩形
+     * @param option {
+     *      可自定義項目
+     *      label: 文字, 需注意換行要加 \n
+     *      fontSize: 文字大小
+     *      ...其他功能後續補充
+     * }
+     */
+    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, option: any = {}) {
+        const node = this.graph.addNode({
+            x: posX,
+            y: posY,
+            shape: shape,
+            attrs: {
+                label: {
+                    text: '',
+                    fontSize: 10,
+                }
+            }
         });
 
-        this.graph.zoomToFit();
-    }
-    // endregion
+        if (option && option.label) node.attr('label/text', option.label);
+        if (option && option.fontSize) node.attr('label/fontSize', option.fontSize);
 
-    // #region 初始化画布
+        return node;
+    }
+
+    // 畫邊
+    /**
+     * 
+     * @param source 從哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
+     * @param target 到哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
+     * @param shape 哪種類型的邊，預設白色直線單箭頭
+     * @param option 其他參數調整，目前沒有
+     */
+    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, shape: string = registerName.normalEdge, option: any = {}) {
+        const sourceCheck = source.cell ? source.port ? { cell: source.cell, port: source.port } : { cell: source.cell } : { x: source.x, y: source.y };
+        const targetCheck = target.cell ? target.port ? { cell: target.cell, port: target.port } : { cell: target.cell } : { x: target.x, y: target.y };
+
+        this.graph.addEdge({
+            shape: shape,
+            source: sourceCheck,
+            target: targetCheck
+        });
+    }
+    // #endregion
+
+    // #region 初始化相關
+    // 初始化画布
     public initGraph() {
         const graph = new Graph({
-            container: document.getElementById('graph-container')!, // 画布的容器
+            container: document.getElementById(GRAPH_NAME)!, // 画布的容器
             background: { color: '#2A2A2A' },                       // 背景
             grid: {                                                 // 网格
                 type: 'doubleMesh',                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
@@ -64,49 +117,19 @@ export default class Demo {
                 enabled: true,
                 zoomAtMousePosition: true,                          // 是否将鼠标位置作为中心缩放
                 modifiers: 'ctrl',                                  // 需要按下修饰键并滚动鼠标滚轮时才触发画布缩放
-                minScale: 0.5,
-                maxScale: 3,
             },
             connecting: {                                           // 连线规则
                 router: {                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
-                    name: 'manhattan',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
+                    name: 'normal',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
                 },
                 connector: {                                        // 连接器
                     name: 'normal',                                // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
-                    args: {
-                        // radius: 8,                                  // 倒角半径
-                    },
                 },
                 anchor: 'center',                                   // 当连接到节点时，通过 anchor 来指定被连接的节点的锚点
                 connectionPoint: 'anchor',                          // 指定连接点
                 allowBlank: false,                                  // 是否允许连接到画布空白位置的点
                 snap: {                                             // 连线的过程中距离节点或者连接桩radius时会触发自动吸附
                     radius: 20,
-                },
-                createEdge() {
-                    return new Shape.Edge({
-                        attrs: {
-                            line: {
-                                stroke: '#A2B1C3',
-                                strokeWidth: 2,
-                                targetMarker: {
-                                    name: 'block',
-                                    width: 12,
-                                    height: 8,
-                                },
-                            },
-                        },
-                        zIndex: 0,
-                        tools: {
-                            name: 'segments',
-                            args: {
-                                snapRadius: 20,
-                                attrs: {
-                                    fill: '#444',
-                                },
-                            },
-                        },
-                    })
                 },
                 validateConnection({ targetMagnet }) {              // 在移动边的时候判断连接是否有效，如果返回 false，当鼠标放开的时候，不会连接到当前元素，否则会连接到当前元素。
                     return !!targetMagnet
@@ -127,14 +150,8 @@ export default class Demo {
                     },
                 },
             },
-            resizing: true,                                         // 缩放节点
+            resizing: false,                                         // 缩放节点
             rotating: false,                                        // 旋转节点
-            selecting: {                                            // 点选/框选
-                enabled: true,
-                rubberband: true,                                   // 是否启用框选
-                showNodeSelectionBox: true,                         // 是否显示节点的选择框
-                showEdgeSelectionBox: true                          // 是否显示边的选择框
-            },
             panning: {                                              // 画布是否可以拖动
                 enabled: true,
                 eventTypes: ['rightMouseDown']                      // 触发画布拖拽的行为
@@ -148,9 +165,8 @@ export default class Demo {
 
         this.graph = graph;
     }
-    // #endregion
 
-    // #region 快捷键与事件
+    // 快捷键与事件
     public initEvent() {
         // copy cut paste
         this.graph.bindKey(['meta+c', 'ctrl+c'], () => {
@@ -207,44 +223,43 @@ export default class Demo {
         })
 
         // 控制连接桩显示/隐藏
-        const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
-            for (let i = 0, len = ports.length; i < len; i = i + 1) {
-                ports[i].style.visibility = show ? 'visible' : 'hidden'
-            }
-        }
+        // const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
+        //     for (let i = 0, len = ports.length; i < len; i = i + 1) {
+        //         ports[i].style.visibility = show ? 'visible' : 'hidden'
+        //     }
+        // }
         // this.graph.on('node:mouseenter', () => {
-        //     const container = document.getElementById('graph-container')!
+        //     const container = document.getElementById(GRAPH_NAME)!
         //     const ports = container.querySelectorAll(
         //         '.x6-port-body',
         //     ) as NodeListOf<SVGElement>
         //     showPorts(ports, true)
         // })
         // this.graph.on('node:mouseleave', () => {
-        //     const container = document.getElementById('graph-container')!
+        //     const container = document.getElementById(GRAPH_NAME)!
         //     const ports = container.querySelectorAll(
         //         '.x6-port-body',
         //     ) as NodeListOf<SVGElement>
         //     showPorts(ports, false)
         // })
 
-        this.graph.on('cell:dblclick', ({ cell, e }) => {
-            const isNode = cell.isNode()
-            const name = cell.isNode() ? 'node-editor' : 'edge-editor'
-            cell.removeTool(name)
-            cell.addTools({
-                name,
-                args: {
-                    event: e,
-                    attrs: {
-                        backgroundColor: isNode ? '#EFF4FF' : '#FFF',
-                    },
-                },
-            })
-        })
+        // this.graph.on('cell:dblclick', ({ cell, e }) => {
+        //     const isNode = cell.isNode()
+        //     const name = cell.isNode() ? 'node-editor' : 'edge-editor'
+        //     cell.removeTool(name)
+        //     cell.addTools({
+        //         name,
+        //         args: {
+        //             event: e,
+        //             attrs: {
+        //                 backgroundColor: isNode ? '#EFF4FF' : '#FFF',
+        //             },
+        //         },
+        //     })
+        // })
     }
-    // #endregion
 
-    // #region 初始化图形定義
+    // 初始化图形定義
     /**
      * 自定義節點
      * port: 上下左右四個連接點
@@ -323,48 +338,78 @@ export default class Demo {
             },
             items: [
                 {
+                    id: 'top',
                     group: 'top',
                 },
                 {
+                    id: 'right',
                     group: 'right',
                 },
                 {
+                    id: 'bottom',
                     group: 'bottom',
                 },
                 {
+                    id: 'left',
                     group: 'left',
                 },
             ],
-        }
+        };
 
         Graph.registerNode(
-            'custom-rect',
+            registerName.startOrEnd,
             {
                 inherit: 'rect',
-                width: 66,
-                height: 36,
+                width: 120,
+                height: 60,
                 attrs: {
                     body: {
-                        strokeWidth: 1,
+                        rx: 12,
+                        ry: 12,
+                        strokeWidth: 0,
                         stroke: '#5F95FF',
-                        fill: '#EFF4FF',
+                        fill: colorConfig.START_END_GREEN,
                     },
                     text: {
                         fontSize: 12,
-                        fill: '#262626',
+                        fill: '#ffffff',
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE
             },
             true,
-        )
+        );
+
+        Graph.registerNode(
+            registerName.process,
+            {
+                inherit: 'rect',
+                width: 120,
+                height: 60,
+                attrs: {
+                    body: {
+                        strokeWidth: 0,
+                        stroke: '#5F95FF',
+                        fill: colorConfig.PROCESS_BLUE,
+                    },
+                    text: {
+                        fontSize: 12,
+                        fill: '#ffffff',
+                    },
+                },
+                ports: { ...ports },
+                zIndex: zIndex.NODE
+            },
+            true,
+        );
 
         Graph.registerNode(
             'custom-polygon',
             {
                 inherit: 'polygon',
-                width: 66,
-                height: 36,
+                width: 65,
+                height: 35,
                 attrs: {
                     body: {
                         strokeWidth: 1,
@@ -379,74 +424,29 @@ export default class Demo {
                 ports: { ...ports },
             },
             true,
-        )
+        );
 
-        Graph.registerNode(
-            'custom-circle',
+        Graph.registerEdge(
+            registerName.normalEdge,
             {
-                inherit: 'circle',
-                width: 45,
-                height: 45,
+                inherit: 'edge',
+                router: {
+                    name: 'normal',
+                },
                 attrs: {
-                    body: {
-                        strokeWidth: 1,
-                        stroke: '#5F95FF',
-                        fill: '#EFF4FF',
-                    },
-                    text: {
-                        fontSize: 12,
-                        fill: '#262626',
+                    line: {
+                        stroke: '#ffffff',
+                        strokeWidth: 2,
+                        targetMarker: {
+                            name: 'block',
+                            width: 12,
+                            height: 8,
+                        },
                     },
                 },
-                ports: { ...ports },
-            },
-            true,
-        )
-
-        // Graph.registerNode(
-        //     'custom-image',
-        //     {
-        //         inherit: 'rect',
-        //         width: 52,
-        //         height: 52,
-        //         markup: [
-        //             {
-        //                 tagName: 'rect',
-        //                 selector: 'body',
-        //             },
-        //             {
-        //                 tagName: 'image',
-        //             },
-        //             {
-        //                 tagName: 'text',
-        //                 selector: 'label',
-        //             },
-        //         ],
-        //         attrs: {
-        //             body: {
-        //                 stroke: '#5F95FF',
-        //                 fill: '#5F95FF',
-        //             },
-        //             image: {
-        //                 width: 26,
-        //                 height: 26,
-        //                 refX: 13,
-        //                 refY: 16,
-        //             },
-        //             label: {
-        //                 refX: 3,
-        //                 refY: 2,
-        //                 textAnchor: 'left',
-        //                 textVerticalAnchor: 'top',
-        //                 fontSize: 12,
-        //                 fill: '#fff',
-        //             },
-        //         },
-        //         ports: { ...ports },
-        //     },
-        //     true,
-        // )
+                zIndex: zIndex.EDGE
+            }
+        );
     }
     // #endregion
-
 }
