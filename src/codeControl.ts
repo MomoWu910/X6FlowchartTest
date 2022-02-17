@@ -22,7 +22,7 @@ export default class Demo {
     constructor() {
         preWork();                          // 設定css樣式
         this.initGraph();                   // 初始化畫布
-        this.initEvent();                   // 初始化鍵盤、滑鼠事件
+        // this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
         this.draw();
@@ -169,58 +169,58 @@ export default class Demo {
     // 快捷键与事件
     public initEvent() {
         // copy cut paste
-        this.graph.bindKey(['meta+c', 'ctrl+c'], () => {
-            const cells = this.graph.getSelectedCells()
-            if (cells.length) {
-                this.graph.copy(cells)
-            }
-            return false
-        })
-        this.graph.bindKey(['meta+x', 'ctrl+x'], () => {
-            const cells = this.graph.getSelectedCells()
-            if (cells.length) {
-                this.graph.cut(cells)
-            }
-            return false
-        })
-        this.graph.bindKey(['meta+v', 'ctrl+v'], () => {
-            if (!this.graph.isClipboardEmpty()) {
-                const cells = this.graph.paste({ offset: 32 })
-                this.graph.cleanSelection()
-                this.graph.select(cells)
-            }
-            return false
-        })
+        // this.graph.bindKey(['meta+c', 'ctrl+c'], () => {
+        //     const cells = this.graph.getSelectedCells()
+        //     if (cells.length) {
+        //         this.graph.copy(cells)
+        //     }
+        //     return false
+        // })
+        // this.graph.bindKey(['meta+x', 'ctrl+x'], () => {
+        //     const cells = this.graph.getSelectedCells()
+        //     if (cells.length) {
+        //         this.graph.cut(cells)
+        //     }
+        //     return false
+        // })
+        // this.graph.bindKey(['meta+v', 'ctrl+v'], () => {
+        //     if (!this.graph.isClipboardEmpty()) {
+        //         const cells = this.graph.paste({ offset: 32 })
+        //         this.graph.cleanSelection()
+        //         this.graph.select(cells)
+        //     }
+        //     return false
+        // })
 
         //undo redo
-        this.graph.bindKey(['meta+z', 'ctrl+z'], () => {
-            if (this.graph.history.canUndo()) {
-                this.graph.history.undo()
-            }
-            return false
-        })
-        this.graph.bindKey(['meta+shift+z', 'ctrl+shift+z'], () => {
-            if (this.graph.history.canRedo()) {
-                this.graph.history.redo()
-            }
-            return false
-        })
+        // this.graph.bindKey(['meta+z', 'ctrl+z'], () => {
+        //     if (this.graph.history.canUndo()) {
+        //         this.graph.history.undo()
+        //     }
+        //     return false
+        // })
+        // this.graph.bindKey(['meta+shift+z', 'ctrl+shift+z'], () => {
+        //     if (this.graph.history.canRedo()) {
+        //         this.graph.history.redo()
+        //     }
+        //     return false
+        // })
 
         // select all
-        this.graph.bindKey(['meta+a', 'ctrl+a'], () => {
-            const nodes = this.graph.getNodes()
-            if (nodes) {
-                this.graph.select(nodes)
-            }
-        })
+        // this.graph.bindKey(['meta+a', 'ctrl+a'], () => {
+        //     const nodes = this.graph.getNodes()
+        //     if (nodes) {
+        //         this.graph.select(nodes)
+        //     }
+        // })
 
         //delete
-        this.graph.bindKey('backspace', () => {
-            const cells = this.graph.getSelectedCells()
-            if (cells.length) {
-                this.graph.removeCells(cells)
-            }
-        })
+        // this.graph.bindKey('backspace', () => {
+        //     const cells = this.graph.getSelectedCells()
+        //     if (cells.length) {
+        //         this.graph.removeCells(cells)
+        //     }
+        // })
 
         // 控制连接桩显示/隐藏
         // const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
