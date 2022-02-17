@@ -1,4 +1,4 @@
-import { Graph, Shape, Addon } from '@antv/x6';
+import { Graph, Shape, Addon, Vector, EdgeView, Cell } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
 
@@ -16,6 +16,11 @@ const preWork = () => {
     insertCss(cssConfig);
 }
 
+const START_POS_X = 100;
+const START_POS_Y = 100;
+const EDGE_LENGTH_V = 140;
+const EDGE_LENGTH_H = 140;
+
 export default class Demo {
     public graph: any;
 
@@ -30,13 +35,66 @@ export default class Demo {
 
     // 畫圖
     public draw() {
-        const startLobby = this.drawNode(100, 100, registerName.startOrEnd, { label: '从商户平台\n点击大厅' });
-        const downloadLobbyLoading = this.drawNode(100, 240, registerName.process, { label: '下载大厅loading页' });
+        const startLobby = this.drawNode(START_POS_X, START_POS_Y, registerName.startOrEnd, { label: `从商户平台\n点击大厅` });
+        const downloadLobbyLoading = this.drawNode(START_POS_X, START_POS_Y + EDGE_LENGTH_V, registerName.process, { label: `下载大厅loading页` });
+        const downloadLoadingPage = this.drawNode(START_POS_X, START_POS_Y + EDGE_LENGTH_V * 2, registerName.process, { label: `载入loading页` });
+        const waitingLoading = this.drawNode(START_POS_X - 30, START_POS_Y + EDGE_LENGTH_V * 3, registerName.process, {
+            size: { w: 180, h: 90 },
+            label: `载入完成后\n\n背后初始化游戏\n显示文案:\n"正在登陆游戏，请稍候"`
+        });
+        const initEndEnterLobby = this.drawNode(START_POS_X, START_POS_Y + EDGE_LENGTH_V * 4 + 15, registerName.startOrEnd, { label: `初始化游戏完成后\n关loading页\n进大厅` });
 
-        this.drawEdge({ cell: startLobby, port: 'bottom' }, { cell: downloadLobbyLoading, port: 'top' });
 
+        this.drawEdge(startLobby, downloadLobbyLoading, 'v');
+        this.drawEdge(downloadLobbyLoading, downloadLoadingPage, 'v');
+        this.drawEdge(downloadLoadingPage, waitingLoading, 'v');
+        this.drawEdge(waitingLoading, initEndEnterLobby, 'v');
 
         this.graph.centerContent();
+
+        this.graph.on('signal', (cell: Cell) => {
+            if (cell.isEdge()) {
+                const view = this.graph.findViewByCell(cell) as EdgeView
+                if (view) {
+                    const token = Vector.create('circle', { r: 6, fill: '#feb662' })
+                    const target = cell.getTargetCell()
+                    setTimeout(() => {
+                        view.sendToken(token.node, 1000, () => {
+                            if (target) {
+                                this.graph.trigger('signal', target)
+                            }
+                        })
+                    }, 300)
+                }
+            } else {
+                this.flash(cell)
+                const edges = this.graph.model.getConnectedEdges(cell, {
+                    outgoing: true,
+                })
+                edges.forEach((edge) => this.graph.trigger('signal', edge))
+            }
+        })
+
+        let manual = false;
+
+        const trigger = () => {
+            this.graph.trigger('signal', startLobby)
+            if (!manual) {
+                setTimeout(trigger, 6000)
+            }
+        }
+
+        trigger();
+
+    }
+
+
+    public flash(cell: Cell) {
+        const cellView = this.graph.findViewByCell(cell)
+        if (cellView) {
+            cellView.highlight()
+            setTimeout(() => cellView.unhighlight(), 300)
+        }
     }
 
     // #region 畫圖相關
@@ -68,6 +126,7 @@ export default class Demo {
 
         if (option && option.label) node.attr('label/text', option.label);
         if (option && option.fontSize) node.attr('label/fontSize', option.fontSize);
+        if (option && option.size) node.resize(option.size.w, option.size.h);
 
         return node;
     }
@@ -77,12 +136,20 @@ export default class Demo {
      * 
      * @param source 從哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
      * @param target 到哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
+     * @param direction 方向，流程圖大部分不是上到下(v)就是左到右(h)，預設上到下
      * @param shape 哪種類型的邊，預設白色直線單箭頭
      * @param option 其他參數調整，目前沒有
      */
-    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, shape: string = registerName.normalEdge, option: any = {}) {
-        const sourceCheck = source.cell ? source.port ? { cell: source.cell, port: source.port } : { cell: source.cell } : { x: source.x, y: source.y };
-        const targetCheck = target.cell ? target.port ? { cell: target.cell, port: target.port } : { cell: target.cell } : { x: target.x, y: target.y };
+    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, option: any = {}) {
+        let sourceCheck, targetCheck;
+        if (direction === 'v' || direction === 'V') {
+            sourceCheck = { cell: source, port: 'bottom' };
+            targetCheck = { cell: target, port: 'top' };
+        }
+        if (direction === 'h' || direction === 'H') {
+            sourceCheck = { cell: source, port: 'right' };
+            targetCheck = { cell: target, port: 'left' };
+        }
 
         this.graph.addEdge({
             shape: shape,
