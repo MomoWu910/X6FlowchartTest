@@ -1,6 +1,7 @@
-import { Graph, Shape, Addon, Vector, EdgeView, Cell } from '@antv/x6';
+import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
+import { gsap } from "gsap";
 
 /* html css 相關樣式建立
 *   graphContainer: 畫板
@@ -27,7 +28,7 @@ export default class Demo {
     constructor() {
         preWork();                          // 設定css樣式
         this.initGraph();                   // 初始化畫布
-        // this.initEvent();                   // 初始化鍵盤、滑鼠事件
+        this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
         this.draw();
@@ -52,48 +53,51 @@ export default class Demo {
 
         this.graph.centerContent();
 
-        this.graph.on('signal', (cell: Cell) => {
-            if (cell.isEdge()) {
-                const view = this.graph.findViewByCell(cell) as EdgeView
-                if (view) {
-                    const token = Vector.create('circle', { r: 6, fill: '#feb662' })
-                    const target = cell.getTargetCell()
-                    setTimeout(() => {
-                        view.sendToken(token.node, 1000, () => {
-                            if (target) {
-                                this.graph.trigger('signal', target)
-                            }
-                        })
-                    }, 300)
-                }
-            } else {
-                this.flash(cell)
-                const edges = this.graph.model.getConnectedEdges(cell, {
-                    outgoing: true,
-                })
-                edges.forEach((edge) => this.graph.trigger('signal', edge))
-            }
-        })
 
-        let manual = false;
-
-        const trigger = () => {
-            this.graph.trigger('signal', startLobby)
-            if (!manual) {
-                setTimeout(trigger, 6000)
-            }
-        }
-
-        trigger();
+        this.startNodeAnimate(startLobby);
 
     }
 
-
     public flash(cell: Cell) {
-        const cellView = this.graph.findViewByCell(cell)
-        if (cellView) {
-            cellView.highlight()
-            setTimeout(() => cellView.unhighlight(), 300)
+        const cellView = this.graph.findViewByCell(cell);
+        if (cellView) cellView.highlight();
+    }
+
+    public unFlash(cell: Cell) {
+        const cellView = this.graph.findViewByCell(cell);
+        if (cellView) cellView.unhighlight();
+    }
+
+    public startNodeAnimate(nowNode: Node) {
+        this.flash(nowNode);
+
+        const edges = this.graph.model.getConnectedEdges(nowNode, {
+            outgoing: true,
+        });
+        gsap.delayedCall(1, () => {
+            this.unFlash(nowNode);
+
+        });
+        gsap.delayedCall(1, () => {
+
+            edges.forEach((edge) => {
+                this.startEdgeAnimate(edge);
+            });
+        })
+    }
+
+    public startEdgeAnimate(nowEdge: Edge) {
+        const view = this.graph.findViewByCell(nowEdge) as EdgeView;
+        if (view) {
+            // 判斷是邊的話就建立球，沿著邊前進
+            const callback = () => {
+                const target = nowEdge.getTargetCell() as Node;
+                if (target) {
+                    this.startNodeAnimate(target);
+                }
+            }
+            const token = Vector.create('circle', { r: 6, fill: '#feb662' });
+            view.sendToken(token.node, 1000, callback);
         }
     }
 
@@ -235,95 +239,10 @@ export default class Demo {
 
     // 快捷键与事件
     public initEvent() {
-        // copy cut paste
-        // this.graph.bindKey(['meta+c', 'ctrl+c'], () => {
-        //     const cells = this.graph.getSelectedCells()
-        //     if (cells.length) {
-        //         this.graph.copy(cells)
-        //     }
-        //     return false
-        // })
-        // this.graph.bindKey(['meta+x', 'ctrl+x'], () => {
-        //     const cells = this.graph.getSelectedCells()
-        //     if (cells.length) {
-        //         this.graph.cut(cells)
-        //     }
-        //     return false
-        // })
-        // this.graph.bindKey(['meta+v', 'ctrl+v'], () => {
-        //     if (!this.graph.isClipboardEmpty()) {
-        //         const cells = this.graph.paste({ offset: 32 })
-        //         this.graph.cleanSelection()
-        //         this.graph.select(cells)
-        //     }
-        //     return false
-        // })
 
-        //undo redo
-        // this.graph.bindKey(['meta+z', 'ctrl+z'], () => {
-        //     if (this.graph.history.canUndo()) {
-        //         this.graph.history.undo()
-        //     }
-        //     return false
-        // })
-        // this.graph.bindKey(['meta+shift+z', 'ctrl+shift+z'], () => {
-        //     if (this.graph.history.canRedo()) {
-        //         this.graph.history.redo()
-        //     }
-        //     return false
-        // })
-
-        // select all
-        // this.graph.bindKey(['meta+a', 'ctrl+a'], () => {
-        //     const nodes = this.graph.getNodes()
-        //     if (nodes) {
-        //         this.graph.select(nodes)
-        //     }
-        // })
-
-        //delete
-        // this.graph.bindKey('backspace', () => {
-        //     const cells = this.graph.getSelectedCells()
-        //     if (cells.length) {
-        //         this.graph.removeCells(cells)
-        //     }
-        // })
-
-        // 控制连接桩显示/隐藏
-        // const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
-        //     for (let i = 0, len = ports.length; i < len; i = i + 1) {
-        //         ports[i].style.visibility = show ? 'visible' : 'hidden'
-        //     }
-        // }
-        // this.graph.on('node:mouseenter', () => {
-        //     const container = document.getElementById(GRAPH_NAME)!
-        //     const ports = container.querySelectorAll(
-        //         '.x6-port-body',
-        //     ) as NodeListOf<SVGElement>
-        //     showPorts(ports, true)
-        // })
-        // this.graph.on('node:mouseleave', () => {
-        //     const container = document.getElementById(GRAPH_NAME)!
-        //     const ports = container.querySelectorAll(
-        //         '.x6-port-body',
-        //     ) as NodeListOf<SVGElement>
-        //     showPorts(ports, false)
-        // })
-
-        // this.graph.on('cell:dblclick', ({ cell, e }) => {
-        //     const isNode = cell.isNode()
-        //     const name = cell.isNode() ? 'node-editor' : 'edge-editor'
-        //     cell.removeTool(name)
-        //     cell.addTools({
-        //         name,
-        //         args: {
-        //             event: e,
-        //             attrs: {
-        //                 backgroundColor: isNode ? '#EFF4FF' : '#FFF',
-        //             },
-        //         },
-        //     })
-        // })
+        this.graph.on('node:mousedown', ({ cell }) => {
+            this.startNodeAnimate(cell);
+        })
     }
 
     // 初始化图形定義
