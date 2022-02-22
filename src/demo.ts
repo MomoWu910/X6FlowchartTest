@@ -333,6 +333,15 @@ export default class Demo {
             },
             items: [
                 {
+                    id: 'top_left',
+                    group: 'top',
+                },
+                {
+                    id: 'top',
+                    group: 'top',
+                },
+                {
+                    id: 'top_right',
                     group: 'top',
                 },
                 {

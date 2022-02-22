@@ -64,6 +64,8 @@ export const cssConfig =
 
 export const colorConfig = {
     START_END_GREEN: '#008a00',
+    START_END_BLUE: '#0050EF',
+    STOP_GRAY: '#647687',
     PROCESS_BLUE: '#1BA1E2',
 }
 
@@ -75,9 +77,19 @@ export const zIndex = {
 
 export const registerName = {
     // node
-    startOrEnd: 'startOrEnd',
+    startOrEnd: 'startOrEnd-rect',
+    changeToOtherFlowChart: 'changeToOtherFlowChart-rect',
+    stopFlowChart: 'stopFlowChart-rect',
     process: 'process-rect',
+    yesOrNo: 'yesOrNo-polygon',
+    yesOrNo_API: 'yesOrNo_API-polygon',
+    popupRemaining: 'popupRemaining-image',
+    popupReturnGame: 'popupReturnGame-image',
+
+    defaultRect: 'rect',
+    defaultCircle: 'circle',
 
     // edge
     normalEdge: 'normal-edge',
+    lEdge: 'lEdge',
 }
