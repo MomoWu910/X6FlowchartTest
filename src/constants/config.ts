@@ -67,6 +67,9 @@ export const colorConfig = {
     START_END_BLUE: '#0050EF',
     STOP_GRAY: '#647687',
     PROCESS_BLUE: '#1BA1E2',
+    YN_RED: '#FFCCCC',
+    YN_ORANGE: '#FAD7AC',
+    YN_GREEN: '#D5E8D4',
 }
 
 export const zIndex = {
@@ -83,8 +86,10 @@ export const registerName = {
     process: 'process-rect',
     yesOrNo: 'yesOrNo-polygon',
     yesOrNo_API: 'yesOrNo_API-polygon',
+    yesOrNo_success: 'yesOrNo_success-polygon',
     popupRemaining: 'popupRemaining-image',
     popupReturnGame: 'popupReturnGame-image',
+    popupConnectFailed: 'popupConnectFailed-image',
 
     defaultRect: 'rect',
     defaultCircle: 'circle',

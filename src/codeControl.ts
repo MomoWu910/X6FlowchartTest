@@ -2,7 +2,8 @@ import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
 import { gsap } from "gsap";
-import { testConfig } from './flowChartConfigs/testConfig';
+import { overviewConfig } from './flowChartConfigs/overviewConfig';
+import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
 import { ImageKey } from './constants/assets';
 
 /* html css 相關樣式建立
@@ -31,15 +32,20 @@ const DEFAULT_FONTSIZE = 12;
 export default class Demo {
     public graph: any;
     public nodesArray: any = {};
+    public configs: any = {};
 
     constructor() {
         preWork();                          // 設定css樣式
+        this.initConfigs([                  // 初始化config檔
+            overviewConfig,
+            roomGameBeforeConfig
+        ]);
         this.initGraph();                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
-        // this.draw();
-        this.drawFromConfig(testConfig);
+        this.drawFromConfig(overviewConfig);
+        // this.drawFromConfig(roomGameBeforeConfig);
     }
 
     public drawFromConfig(config: any) {
@@ -116,9 +122,11 @@ export default class Demo {
         this.graph.centerContent();
     }
 
-    // 畫圖
-    public draw() {
-
+    // 轉場
+    public changeFlowChart(configName: string) {
+        this.graph.clearCells();
+        console.log(this.configs[configName]);
+        this.drawFromConfig(this.configs[configName]);
     }
 
     // #region 畫圖相關
@@ -145,6 +153,9 @@ export default class Demo {
                     text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
+            },
+            data: {
+                changeToFlowChart: ''
             }
         });
 
@@ -155,6 +166,9 @@ export default class Demo {
             const adjustX = option.size.w > DEFAULT_RECT_WIDTH ? -(option.size.w - DEFAULT_RECT_WIDTH) / 2 : (option.size.w - DEFAULT_RECT_WIDTH) / 2;
             const adjustY = option.size.h > DEFAULT_RECT_HEIGHT ? -(option.size.h - DEFAULT_RECT_HEIGHT) / 2 : (option.size.h - DEFAULT_RECT_HEIGHT) / 2;
             node.position(posX + adjustX, posY + adjustY);
+        }
+        if (shape === registerName.changeToOtherFlowChart) {
+            node.data.changeToFlowChart = option.data;
         }
 
         return node;
@@ -322,9 +336,9 @@ export default class Demo {
 
     // 快捷键与事件
     public initEvent() {
-
         this.graph.on('node:mousedown', ({ cell }) => {
-            this.startNodeAnimate(cell);
+            // this.startNodeAnimate(cell);
+            if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
         })
     }
 
@@ -571,7 +585,7 @@ export default class Demo {
                         refPoints: '0,10 10,0 20,10 10,20',
                         strokeWidth: 0,
                         stroke: '#5F95FF',
-                        fill: '#FFCCCC',
+                        fill: colorConfig.YN_RED,
                     },
                     text: {
                         fontSize: DEFAULT_FONTSIZE,
@@ -595,7 +609,31 @@ export default class Demo {
                         refPoints: '0,10 10,0 20,10 10,20',
                         strokeWidth: 0,
                         stroke: '#5F95FF',
-                        fill: '#FAD7AC',
+                        fill: colorConfig.YN_ORANGE,
+                    },
+                    text: {
+                        fontSize: DEFAULT_FONTSIZE,
+                        fill: '#262626',
+                    },
+                },
+                ports: { ...ports },
+            },
+            true,
+        );
+
+        // 正常流程分岔路，菱形，綠
+        Graph.registerNode(
+            registerName.yesOrNo_success,
+            {
+                inherit: 'polygon',
+                width: DEFAULT_RECT_WIDTH,
+                height: DEFAULT_RECT_HEIGHT,
+                attrs: {
+                    body: {
+                        refPoints: '0,10 10,0 20,10 10,20',
+                        strokeWidth: 0,
+                        stroke: '#5F95FF',
+                        fill: colorConfig.YN_GREEN,
                     },
                     text: {
                         fontSize: DEFAULT_FONTSIZE,
@@ -638,6 +676,29 @@ export default class Demo {
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
                 imageUrl: ImageKey.POPUP_RETURN_GAME,
+                attrs: {
+                    body: {
+                        strokeWidth: 0,
+                    },
+                    text: {
+                        fontSize: DEFAULT_FONTSIZE,
+                        fill: '#ffffff',
+                    },
+                },
+                ports: { ...ports },
+                zIndex: zIndex.NODE,
+            },
+            true,
+        );
+
+        // 彈窗“网络连接失败，请稍后再试”
+        Graph.registerNode(
+            registerName.popupConnectFailed,
+            {
+                inherit: 'image',
+                width: DEFAULT_RECT_WIDTH,
+                height: DEFAULT_RECT_HEIGHT,
+                imageUrl: ImageKey.POPUP_CONNECT_FAILED,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -698,6 +759,13 @@ export default class Demo {
                 zIndex: zIndex.EDGE
             }
         );
+    }
+
+    // 初始化config檔
+    public initConfigs(configs: Array<any> = []) {
+        configs.forEach(config => {
+            this.configs[config.name] = config;
+        });
     }
     // #endregion
 }

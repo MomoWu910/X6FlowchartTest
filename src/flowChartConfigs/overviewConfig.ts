@@ -4,6 +4,8 @@ const DEFAULT_POPUP_WIDTH = 150;
 const DEFAULT_POPUP_HEIGHT = 90;
 /**
  * 基本格式
+ * nodes: [
+ * ...
  * {
  *      @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
  *      @param name (string) 節點名稱
@@ -13,9 +15,21 @@ const DEFAULT_POPUP_HEIGHT = 90;
 *           @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
  *          @param size (optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
  *      }
- * }
+ * },
+ * ...
+ * ],
+ * vFlows: [ 畫垂直邊，陣列放入上到下，如果需要加入“是”、“否”的文字就在source節點加上 _Y or _N
+ *      ["1_1", "1_2_Y", "1_3_N", "1_4", "1_5"],
+ * ],
+ * hFlows: [ 畫水平邊，陣列放入左到右，如果需要加入“是”、“否”的文字就在source節點加上 _Y or _N
+ *      ["4_3_Y", "5_3", "6_3"],
+ * ],
+ * lFlows: [ 畫L型邊，陣列放入[起點, 迄點, 起點port, 迄點port], 如果需要加入“是”、“否”的文字就在source節點加上 _Y or _N
+ *      ["4_6_N", "5_7", "right", "top"],
+ * ]
  */
-export const testConfig = {
+export const overviewConfig = {
+    name: 'overviewConfig',
     nodes: [
         // #region 1
         {
@@ -143,6 +157,7 @@ export const testConfig = {
             shape: registerName.changeToOtherFlowChart,
             attr: {
                 label: "选房游戏流程",
+                data: "roomGameBeforeConfig"
             }
         },
         // #endregion
