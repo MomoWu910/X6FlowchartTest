@@ -4,6 +4,8 @@ const DEFAULT_POPUP_WIDTH = 150;
 const DEFAULT_POPUP_HEIGHT = 90;
 /**
  * 基本格式
+ * @param name (string) config名稱，與export的命名一致，並且用於initconfig
+ * @param level (number) 用於流程圖跳轉後返回，值越大越下層，ex. level2返回回level1
  * nodes: [
  * ...
  * {
@@ -30,6 +32,7 @@ const DEFAULT_POPUP_HEIGHT = 90;
  */
 export const overviewConfig = {
     name: 'overviewConfig',
+    level: 1,
     nodes: [
         // #region 1
         {

@@ -1,6 +1,18 @@
 // #region cssConfig
 export const cssConfig =
     `
+*{
+    padding: 0;
+    margin: 0;
+}
+#main-canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+body {
+    overflow: hidden;
+}
 #container {
     display: flex;
     border: 1px solid #dfe3e8;
@@ -19,45 +31,14 @@ export const cssConfig =
     width: 100%;
     height: 100%;
 }
-.x6-widget-stencil  {
-    background-color: #666;
-}
-.x6-widget-stencil-title {
-    color: #fff;
-    background-color: #555;
-}
-.x6-widget-stencil-title:hover {
-    color: #eee;
-}
-.x6-widget-stencil-group-title {
-    color: #fff !important;
-    background-color: #555 !important;
-}
-.x6-widget-stencil-group-title:hover {
-    color: #eee !important;
-}
-.x6-widget-transform {
-    margin: -1px 0 0 -1px;
-    padding: 0px;
-    border: 1px solid #239edd;
-}
-.x6-widget-transform > div {
-    border: 1px solid #239edd;
-}
-.x6-widget-transform > div:hover {
-    background-color: #3dafe4;
-}
-.x6-widget-transform-active-handle {
-    background-color: #3dafe4;
-}
-.x6-widget-transform-resize {
-    border-radius: 0;
-}
-.x6-widget-selection-inner {
-    border: 1px solid #239edd;
-}
-.x6-widget-selection-box {
-    opacity: 0;
+.x6-tooltip {
+    border: 1px solid #e2e2e2;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #545454;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 8px;
+    box-shadow: rgb(174, 174, 174) 0px 0px 10px;
 }
 `;
 // #endregion

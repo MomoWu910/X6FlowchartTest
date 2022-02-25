@@ -33,6 +33,8 @@ export default class Demo {
     public graph: any;
     public nodesArray: any = {};
     public configs: any = {};
+    public nowPage: any = {};
+    public prePages: any = {};
 
     constructor() {
         preWork();                          // 設定css樣式
@@ -49,8 +51,9 @@ export default class Demo {
     }
 
     public drawFromConfig(config: any) {
-        const nodes = config.nodes;
+        this.nowPage = config;
 
+        const nodes = config.nodes;
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
             const posX = node.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X;
@@ -125,8 +128,20 @@ export default class Demo {
     // 轉場
     public changeFlowChart(configName: string) {
         this.graph.clearCells();
-        console.log(this.configs[configName]);
+        this.prePages[this.nowPage.level] = this.nowPage.name;
         this.drawFromConfig(this.configs[configName]);
+    }
+
+    // 返回上一張流程圖
+    public backToPrePage() {
+        const nowLevel = this.nowPage.level;
+        if (!this.prePages[nowLevel - 1]) {
+            console.warn('no pre page!');
+            return;
+        }
+        this.graph.clearCells();
+        this.prePages[this.nowPage.level] = '';
+        this.drawFromConfig(this.configs[this.prePages[nowLevel - 1]]);
     }
 
     // #region 畫圖相關
@@ -337,8 +352,14 @@ export default class Demo {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
+            // console.log(this.prePages)
             // this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
+            else this.backToPrePage();
+        })
+
+        this.graph.on('node:mouseenter', ({ cell }) => {
+            console.log(cell)
         })
     }
 
