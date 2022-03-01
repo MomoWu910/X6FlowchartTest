@@ -10,6 +10,9 @@ import { ImageKey } from './constants/assets';
 *   graphContainer: 畫板
 */
 const GRAPH_NAME = 'code-graph-container';
+const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
+const ZOOM_IN_BTN_NAME = 'zoomIn';
+const ZOOM_OUT_BTN_NAME = 'zoomOut';
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
     const container = document.getElementById('container')!;
@@ -132,6 +135,7 @@ export default class Demo {
         this.drawFromConfig(this.configs[configName]);
     }
 
+    // #region 左側按鈕功能
     // 返回上一張流程圖
     public backToPrePage() {
         const nowLevel = this.nowPage.level;
@@ -143,6 +147,17 @@ export default class Demo {
         this.prePages[this.nowPage.level] = '';
         this.drawFromConfig(this.configs[this.prePages[nowLevel - 1]]);
     }
+
+    // zoom in
+    public zoomIn() {
+        this.graph.zoom(0.1);
+    }
+
+    // zoom out
+    public zoomOut() {
+        this.graph.zoom(-0.1);
+    }
+    // #endregion
 
     // #region 畫圖相關
     // 畫節點
@@ -355,12 +370,19 @@ export default class Demo {
             // console.log(this.prePages)
             // this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
-            else this.backToPrePage();
+            // else this.backToPrePage();
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
             console.log(cell)
         })
+
+        let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME);
+        if (backBtn) backBtn.addEventListener('click', () => { this.backToPrePage(); });
+        let zoomInBtn = document.getElementById(ZOOM_IN_BTN_NAME);
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => { this.zoomIn(); });
+        let zoomOutBtn = document.getElementById(ZOOM_OUT_BTN_NAME);
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
     }
 
     // 初始化图形定義
