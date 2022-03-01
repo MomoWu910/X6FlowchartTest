@@ -62,7 +62,7 @@ export default class Demo {
             },
             connecting: {                                           // 连线规则
                 router: {                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
-                    name: 'manhattan',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
+                    name: 'orth',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
                 },
                 connector: {                                        // 连接器
                     name: 'normal',                                // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
@@ -333,6 +333,15 @@ export default class Demo {
             },
             items: [
                 {
+                    id: 'top_left',
+                    group: 'top',
+                },
+                {
+                    id: 'top',
+                    group: 'top',
+                },
+                {
+                    id: 'top_right',
                     group: 'top',
                 },
                 {
