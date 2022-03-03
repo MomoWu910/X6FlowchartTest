@@ -1,12 +1,15 @@
 const path = require('path');
-const { resolve } = require('path');
 var webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+// import * as path from 'path';
+// import * as webpack from 'webpack';
+// import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 module.exports = {
     mode: 'development',
     entry: {
-        index: './index.ts',
+        index: path.resolve(__dirname, './index.ts'),
     },
     devtool: 'cheap-module-source-map',
     devServer: {
@@ -30,7 +33,8 @@ module.exports = {
         publicPath: '/dist/'
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
+        fallback: { "path": require.resolve("path-browserify") }
     },
     module: {
         rules: [

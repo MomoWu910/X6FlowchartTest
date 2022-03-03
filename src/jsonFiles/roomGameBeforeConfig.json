@@ -1,0 +1,252 @@
+{
+    "name": "roomGameBeforeConfig",
+    "level": 2,
+    "nodes": [
+        {
+            "seat": "1_1",
+            "name": "downloadLoadingPage",
+            "shape": "process-rect",
+            "attr": {
+                "label": "载入loading页"
+            }
+        },
+        {
+            "seat": "1_2",
+            "name": "ifAPISend",
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "是否发送成功\n(本机网路正常)"
+            }
+        },
+        {
+            "seat": "1_4",
+            "name": "ifAPIReqIn30Sec",
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "30秒内是否\n收到API回应"
+            }
+        },
+        {
+            "seat": "1_6",
+            "name": "ifTokenInvalid",
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "是否token失效\n(-201)"
+            }
+        },
+        {
+            "seat": "1_7",
+            "name": "closeLoadingEnterRoomList",
+            "shape": "process-rect",
+            "attr": {
+                "label": "收掉loading页\n进入选房页"
+            }
+        },
+        {
+            "seat": "1_8",
+            "name": "changeToChooseRoomFlowChart",
+            "shape": "changeToOtherFlowChart-rect",
+            "attr": {
+                "label": "点击游戏房间"
+            }
+        },
+        {
+            "seat": "2_2",
+            "name": "connectFailed",
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试",
+                "size": {
+                    "w": 150,
+                    "h": 60
+                }
+            }
+        },
+        {
+            "seat": "2_4",
+            "name": "connectFailed",
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试",
+                "size": {
+                    "w": 150,
+                    "h": 60
+                }
+            }
+        },
+        {
+            "seat": "2_6",
+            "name": "connectFailed",
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试",
+                "size": {
+                    "w": 150,
+                    "h": 60
+                }
+            }
+        },
+        {
+            "seat": "3_2",
+            "name": "ifPopupResourceLoaded",
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "seat": "3_3",
+            "name": "stopInLoadingPage",
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "seat": "3_4",
+            "name": "ifPopupResourceLoaded",
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "seat": "3_5",
+            "name": "stopInLoadingPage",
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "seat": "3_6",
+            "name": "ifPopupResourceLoaded",
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "seat": "3_7",
+            "name": "stopInLoadingPage",
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "seat": "4_2",
+            "name": "popupConnectFailed",
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "size": {
+                    "w": 150,
+                    "h": 90
+                }
+            }
+        },
+        {
+            "seat": "4_4",
+            "name": "popupConnectFailed",
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "size": {
+                    "w": 150,
+                    "h": 90
+                }
+            }
+        },
+        {
+            "seat": "4_6",
+            "name": "popupConnectFailed",
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "size": {
+                    "w": 150,
+                    "h": 90
+                }
+            }
+        },
+        {
+            "seat": "5_3",
+            "name": "notOneGameBackLobby",
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "非单一游戏: 返回大厅\n单一游戏: 黑遮罩+弹窗文案",
+                "size": {
+                    "w": 150,
+                    "h": 60
+                }
+            }
+        },
+        {
+            "seat": "5_6",
+            "name": "maskAndToast",
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "黑遮罩+toast\n“当前连接已过期，请重新登录”",
+                "size": {
+                    "w": 170,
+                    "h": 60
+                }
+            }
+        }
+    ],
+    "vFlows": [
+        [
+            "1_1",
+            "1_2_Y",
+            "1_4_Y",
+            "1_6_N",
+            "1_7",
+            "1_8"
+        ],
+        [
+            "3_2_N",
+            "3_3"
+        ],
+        [
+            "3_4_N",
+            "3_5"
+        ],
+        [
+            "3_6_N",
+            "3_7"
+        ]
+    ],
+    "hFlows": [
+        [
+            "1_2_N",
+            "2_2",
+            "3_2_Y",
+            "4_2"
+        ],
+        [
+            "1_4_N",
+            "2_4",
+            "3_4_Y",
+            "4_4"
+        ],
+        [
+            "1_6_N",
+            "2_6",
+            "3_6_Y",
+            "4_6",
+            "5_6"
+        ]
+    ],
+    "lFlows": [
+        [
+            "4_2",
+            "5_3",
+            "right",
+            "left_top"
+        ],
+        [
+            "4_4",
+            "5_3",
+            "right",
+            "left_bottom"
+        ]
+    ]
+}

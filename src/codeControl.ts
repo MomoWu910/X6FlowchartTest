@@ -13,6 +13,9 @@ const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
 const ZOOM_IN_BTN_NAME = 'zoomIn';
 const ZOOM_OUT_BTN_NAME = 'zoomOut';
+const CLEAR = 'clear';
+const DOWNLOAD = 'download';
+const READ_FILE = 'readFile';
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
     const container = document.getElementById('container')!;
@@ -31,8 +34,18 @@ const EDGE_LENGTH_H = 200;
 const DEFAULT_RECT_WIDTH = 120;
 const DEFAULT_RECT_HEIGHT = 60;
 const DEFAULT_FONTSIZE = 12;
+import * as path from 'path';
+import * as fs from 'fs';
 
-export default class Demo {
+const saveJSONPath = path.join(__dirname, './saveJSON');
+
+// const saveJSONPath = './saveJSON/';
+const emptyPage = {
+    level: 0,
+    nodes: []
+}
+
+export default class CodeControl {
     public graph: any;
     public nodesArray: any = {};
     public configs: any = {};
@@ -51,6 +64,24 @@ export default class Demo {
 
         this.drawFromConfig(overviewConfig);
         // this.drawFromConfig(roomGameBeforeConfig);
+
+        // const overviewConfigJSON = JSON.stringify(overviewConfig);
+        // this.download(overviewConfig.name+'.json', overviewConfigJSON);
+    }
+
+    public download(filename, text) {
+        var pom = document.createElement('a');
+        pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
+        pom.setAttribute('download', filename);
+    
+        if (document.createEvent) {
+            var event = document.createEvent('MouseEvents');
+            event.initEvent('click', true, true);
+            pom.dispatchEvent(event);
+        }
+        else {
+            pom.click();
+        }
     }
 
     public drawFromConfig(config: any) {
@@ -374,15 +405,39 @@ export default class Demo {
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
-            console.log(cell)
+            // console.log(cell)
         })
 
         let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME);
         if (backBtn) backBtn.addEventListener('click', () => { this.backToPrePage(); });
+
         let zoomInBtn = document.getElementById(ZOOM_IN_BTN_NAME);
         if (zoomInBtn) zoomInBtn.addEventListener('click', () => { this.zoomIn(); });
         let zoomOutBtn = document.getElementById(ZOOM_OUT_BTN_NAME);
         if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
+        
+        let clearBtn = document.getElementById(CLEAR);
+        if (clearBtn) clearBtn.addEventListener('click', () => { 
+            this.graph.clearCells();
+            this.prePages[this.nowPage.level] = this.nowPage.name; 
+            this.nowPage = emptyPage;
+        });
+
+        let downloadBtn = document.getElementById(DOWNLOAD);
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => { 
+                if(this.nowPage.level === 0) {
+                    console.warn('nothing to download!');
+                    return;
+                }
+                const configJSON = JSON.stringify(this.nowPage);
+                this.download(this.nowPage.name+'.json', configJSON); 
+            });
+        }
+
+        let readFileBtn = document.getElementById(READ_FILE);
+        if(readFileBtn) readFileBtn.addEventListener('click', () => { 
+        });
     }
 
     // 初始化图形定義
