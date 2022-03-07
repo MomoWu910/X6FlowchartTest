@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { overviewConfig } from './flowChartConfigs/overviewConfig';
 import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
 import { ImageKey } from './constants/assets';
+import _ from 'lodash';
 
 /* html css 相關樣式建立
 *   graphContainer: 畫板
@@ -13,9 +14,10 @@ const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
 const ZOOM_IN_BTN_NAME = 'zoomIn';
 const ZOOM_OUT_BTN_NAME = 'zoomOut';
-const CLEAR = 'clear';
-const DOWNLOAD = 'download';
-const READ_FILE = 'readFile';
+const EDIT_TEXT_BTN_NAME = 'edit';
+const CLEAR_BTN_NAME = 'clear';
+const DOWNLOAD_BTN_NAME = 'download';
+// const READ_FILE = 'readFile';
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
     const container = document.getElementById('container')!;
@@ -48,9 +50,12 @@ const emptyPage = {
 export default class CodeControl {
     public graph: any;
     public nodesArray: any = {};
-    public configs: any = {};
+    public originConfigs: any = {};
+    public saveOriginJSON: any = {};
+    public editedConfigs: any = {};
     public nowPage: any = {};
     public prePages: any = {};
+    public canEditText: boolean = false;
 
     constructor() {
         preWork();                          // 設定css樣式
@@ -73,7 +78,7 @@ export default class CodeControl {
         var pom = document.createElement('a');
         pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
         pom.setAttribute('download', filename);
-    
+
         if (document.createEvent) {
             var event = document.createEvent('MouseEvents');
             event.initEvent('click', true, true);
@@ -90,10 +95,9 @@ export default class CodeControl {
         const nodes = config.nodes;
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            const posX = node.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X;
-            const posY = node.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y;
-            let attr = node.attr;
-            this.nodesArray[node.seat] = this.drawNode(posX, posY, node.shape, attr);
+            const posX = node.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X;
+            const posY = node.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y;
+            this.nodesArray[node.data.seat] = this.drawNode(posX, posY, node.shape, node.attr, node.data);
         }
 
         const vFlows = config.vFlows;
@@ -157,14 +161,59 @@ export default class CodeControl {
         }
 
         this.graph.centerContent();
+        if (!this.saveOriginJSON[this.nowPage.name]) this.saveOriginJSON[this.nowPage.name] = this.graph.toJSON();
     }
 
     // 轉場
     public changeFlowChart(configName: string) {
         this.graph.clearCells();
+
+        // 暫存本頁名稱於及當前level，用於返回本頁
         this.prePages[this.nowPage.level] = this.nowPage.name;
-        this.drawFromConfig(this.configs[configName]);
+
+        // 暫存本頁
+        this.editedConfigs[this.nowPage.name] = this.nowPage;
+
+        this.drawFromConfig(this.editedConfigs[configName]);
     }
+
+    // #region JSON相關
+    public nodesToJSON(nodes: Node[]) {
+        let nodesJSON: any[] = [];
+        nodes.map((node) => {
+            let json = {
+                data: {
+                    seat: node.data.seat,
+                    name: node.data.name,
+                    changeToFlowChart: node.data.changeToFlowChart
+                },
+                shape: node.shape,
+                attr: {
+                    label: node.attrs ? node.attrs.text.text : '',
+                }
+            }
+            nodesJSON.push(json);
+        })
+        console.warn(nodesJSON);
+    }
+
+    // 檢查是否編輯過
+    public checkIfEdited() {
+        const editedJSON = this.graph.toJSON();
+        const originJSON = this.saveOriginJSON[this.nowPage.name];
+        console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
+        return !_.isEqual(editedJSON, originJSON);
+    }
+
+    // 根據編輯過的畫布撰寫一個新版config
+    public getNewVersionConfig() {
+        const nodes = this.graph.getNodes();
+        const edges = this.graph.getEdges();
+        console.warn('nodes', nodes);
+        console.warn('edges', edges);
+        this.nodesToJSON(nodes);
+    }
+    // #endregion
 
     // #region 左側按鈕功能
     // 返回上一張流程圖
@@ -175,8 +224,13 @@ export default class CodeControl {
             return;
         }
         this.graph.clearCells();
+
+        // 清空當前level
         this.prePages[this.nowPage.level] = '';
-        this.drawFromConfig(this.configs[this.prePages[nowLevel - 1]]);
+
+        // 暫存本頁
+        this.editedConfigs[this.nowPage.name] = this.nowPage;
+        this.drawFromConfig(this.editedConfigs[this.prePages[nowLevel - 1]]);
     }
 
     // zoom in
@@ -204,33 +258,35 @@ export default class CodeControl {
      *      ...其他功能後續補充
      * }
      */
-    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, option: any = {}) {
+    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
         const node = this.graph.addNode({
             x: posX,
             y: posY,
             shape: shape,
             attrs: {
                 label: {
-                    text: '',
+                    // text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
             },
             data: {
+                name: data.name,
                 changeToFlowChart: ''
             }
         });
 
-        if (option && option.label) node.attr('label/text', option.label);
-        if (option && option.fontSize) node.attr('label/fontSize', option.fontSize);
-        if (option && option.size) {
-            node.resize(option.size.w, option.size.h);
-            const adjustX = option.size.w > DEFAULT_RECT_WIDTH ? -(option.size.w - DEFAULT_RECT_WIDTH) / 2 : (option.size.w - DEFAULT_RECT_WIDTH) / 2;
-            const adjustY = option.size.h > DEFAULT_RECT_HEIGHT ? -(option.size.h - DEFAULT_RECT_HEIGHT) / 2 : (option.size.h - DEFAULT_RECT_HEIGHT) / 2;
+        if (attr && attr.label) node.label = attr.label;
+        if (attr && attr.fontSize) node.attr('label/fontSize', attr.fontSize);
+        if (attr && attr.size) {
+            node.resize(attr.size.w, attr.size.h);
+            const adjustX = attr.size.w > DEFAULT_RECT_WIDTH ? -(attr.size.w - DEFAULT_RECT_WIDTH) / 2 : (attr.size.w - DEFAULT_RECT_WIDTH) / 2;
+            const adjustY = attr.size.h > DEFAULT_RECT_HEIGHT ? -(attr.size.h - DEFAULT_RECT_HEIGHT) / 2 : (attr.size.h - DEFAULT_RECT_HEIGHT) / 2;
             node.position(posX + adjustX, posY + adjustY);
         }
         if (shape === registerName.changeToOtherFlowChart) {
-            node.data.changeToFlowChart = option.data;
+            node.data.changeToFlowChart = data.changeToFlowChart;
         }
+        if (data && data.seat) node.data.seat = data.seat;
 
         return node;
     }
@@ -274,6 +330,10 @@ export default class CodeControl {
         if (option && option.label) {
             if (option.label === 'n' || option.label === 'N') edge.appendLabel('否');
             if (option.label === 'y' || option.label === 'Y') edge.appendLabel('是');
+
+            edge.data = {
+                label: option.label
+            };
         }
     }
     // #endregion
@@ -408,6 +468,18 @@ export default class CodeControl {
             // console.log(cell)
         })
 
+        this.graph.on('cell:dblclick', ({ cell, e }) => {
+            if (!this.canEditText) return;
+            const name = cell.isNode() ? 'node-editor' : 'edge-editor';
+            cell.removeTool(name);
+            cell.addTools({
+                name,
+                args: {
+                    event: e,
+                },
+            });
+        })
+
         let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME);
         if (backBtn) backBtn.addEventListener('click', () => { this.backToPrePage(); });
 
@@ -415,29 +487,41 @@ export default class CodeControl {
         if (zoomInBtn) zoomInBtn.addEventListener('click', () => { this.zoomIn(); });
         let zoomOutBtn = document.getElementById(ZOOM_OUT_BTN_NAME);
         if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
-        
-        let clearBtn = document.getElementById(CLEAR);
-        if (clearBtn) clearBtn.addEventListener('click', () => { 
+
+        let clearBtn = document.getElementById(CLEAR_BTN_NAME);
+        if (clearBtn) clearBtn.addEventListener('click', () => {
             this.graph.clearCells();
-            this.prePages[this.nowPage.level] = this.nowPage.name; 
+            this.prePages[this.nowPage.level] = this.nowPage.name;
             this.nowPage = emptyPage;
         });
 
-        let downloadBtn = document.getElementById(DOWNLOAD);
+        let downloadBtn = document.getElementById(DOWNLOAD_BTN_NAME);
         if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => { 
-                if(this.nowPage.level === 0) {
+            downloadBtn.addEventListener('click', () => {
+                if (this.nowPage.level === 0) {
                     console.warn('nothing to download!');
                     return;
                 }
-                const configJSON = JSON.stringify(this.nowPage);
-                this.download(this.nowPage.name+'.json', configJSON); 
+
+                this.getNewVersionConfig();
+                // this.editedConfigs[this.nowPage.name] = this.nowPage;
+                // const ifEdited = this.checkIfEdited();
+                // let downConfig = this.nowPage;
+                // if (ifEdited) downConfig = this.getNewVersionConfig();
+                // const configJSON = JSON.stringify(downConfig);
+                // this.download(this.nowPage.name + '.json', configJSON);
             });
         }
 
-        let readFileBtn = document.getElementById(READ_FILE);
-        if(readFileBtn) readFileBtn.addEventListener('click', () => { 
-        });
+        let editTextBtn = document.getElementById(EDIT_TEXT_BTN_NAME);
+        if (editTextBtn) {
+            editTextBtn.addEventListener('click', () => {
+                this.canEditText = !this.canEditText;
+                const onOff = this.canEditText ? 'on' : 'off';
+                if (editTextBtn) editTextBtn.innerText = 'edit ' + onOff;
+            });
+        }
+
     }
 
     // 初始化图形定義
@@ -862,7 +946,8 @@ export default class CodeControl {
     // 初始化config檔
     public initConfigs(configs: Array<any> = []) {
         configs.forEach(config => {
-            this.configs[config.name] = config;
+            this.originConfigs[config.name] = JSON.parse(JSON.stringify(config));
+            this.editedConfigs[config.name] = JSON.parse(JSON.stringify(config));
         });
     }
     // #endregion

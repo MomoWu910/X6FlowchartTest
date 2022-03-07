@@ -6,11 +6,16 @@ const DEFAULT_POPUP_HEIGHT = 90;
  * 基本格式
  * @param name (string) config名稱，與export的命名一致，並且用於initconfig
  * @param level (number) 用於流程圖跳轉後返回，值越大越下層，ex. level2返回回level1
+ * @param version (string) 版號，儲存時會自動增加一版
  * nodes: [
  * ...
  * {
- *      @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
- *      @param name (string) 節點名稱
+ *      @param data (optional) 可自定義之與X6無關資料
+ *      {
+ *          @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
+ *          @param name (string) 節點名稱
+ *          @param changeToFlowChart (string) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+ *      }
  *      @param label (string) 節點上要顯示的文字
  *      @param attr (obj) 可自定義之參數，包含但不限於以下
  *      {
@@ -33,35 +38,44 @@ const DEFAULT_POPUP_HEIGHT = 90;
 export const overviewConfig = {
     name: 'overviewConfig',
     level: 1,
+    version: "0.0.1",
     nodes: [
         // #region 1
         {
-            seat: "1_1",
-            name: "startLobby",
+            data: {
+                seat: "1_1",
+                name: "startLobby"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "从商户平台\n点击大厅",
             }
         },
         {
-            seat: "1_2",
-            name: "downloadLobbyLoading",
+            data: {
+                seat: "1_2",
+                name: "downloadLobbyLoading"
+            },
             shape: registerName.process,
             attr: {
                 label: "下载大厅loading页",
             }
         },
         {
-            seat: "1_3",
-            name: "downloadLoadingPage",
+            data: {
+                seat: "1_3",
+                name: "downloadLoadingPage"
+            },
             shape: registerName.process,
             attr: {
                 label: "载入loading页",
             }
         },
         {
-            seat: "1_4",
-            name: "waitingLoading",
+            data: {
+                seat: "1_4",
+                name: "waitingLoading"
+            },
             shape: registerName.process,
             attr: {
                 label: "载入完成后\n\n背后初始化游戏\n显示文案:\n'正在登陆游戏，请稍候'",
@@ -69,8 +83,10 @@ export const overviewConfig = {
             }
         },
         {
-            seat: "1_5",
-            name: "initEndEnterLobby",
+            data: {
+                seat: "1_5",
+                name: "initEndEnterLobby"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "初始化游戏完成后\n关loading页\n进大厅",
@@ -79,16 +95,20 @@ export const overviewConfig = {
         // #endregion
         // #region 2
         {
-            seat: "2_1",
-            name: "hotChangeGame",
+            data: {
+                seat: "2_1",
+                name: "hotChangeGame"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "火热点击游戏跳转",
             }
         },
         {
-            seat: "2_2",
-            name: "connecting",
+            data: {
+                seat: "2_2",
+                name: "connecting"
+            },
             shape: registerName.process,
             attr: {
                 label: "连接中",
@@ -97,8 +117,10 @@ export const overviewConfig = {
         // #endregion
         // #region 3
         {
-            seat: "3_1",
-            name: "enterGameFrom156",
+            data: {
+                seat: "3_1",
+                name: "enterGameFrom156"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "从商户平台\n点击游戏",
@@ -107,99 +129,123 @@ export const overviewConfig = {
         // #endregion
         // #region 4
         {
-            seat: "4_1",
-            name: "enterGameFromLobby",
+            data: {
+                seat: "4_1",
+                name: "enterGameFromLobby"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "从大厅中点击游戏",
             }
         },
         {
-            seat: "4_2",
-            name: "connecting",
+            data: {
+                seat: "4_2",
+                name: "connecting"
+            },
             shape: registerName.process,
             attr: {
                 label: "连接中",
             }
         },
         {
-            seat: "4_3",
-            name: "ifAPIRemaining",
+            data: {
+                seat: "4_3",
+                name: "ifAPIRemaining"
+            },
             shape: registerName.yesOrNo_API,
             attr: {
                 label: "API\n是否维护中",
             }
         },
         {
-            seat: "4_4",
-            name: "ifInOtherGame",
+            data: {
+                seat: "4_4",
+                name: "ifInOtherGame"
+            },
             shape: registerName.yesOrNo_API,
             attr: {
                 label: "API\n是否在其他游戏",
             }
         },
         {
-            seat: "4_5",
-            name: "downloadLobbyLoading",
+            data: {
+                seat: "4_5",
+                name: "downloadLobbyLoading"
+            },
             shape: registerName.process,
             attr: {
                 label: "下载大厅loading页",
             }
         },
         {
-            seat: "4_6",
-            name: "ifRoomGame",
+            data: {
+                seat: "4_6",
+                name: "ifRoomGame"
+            },
             shape: registerName.yesOrNo,
             attr: {
                 label: "是否有选房页",
             }
         },
         {
-            seat: "4_7",
-            name: "changeToRoomGameFlowChart",
+            data: {
+                seat: "4_7",
+                name: "changeToRoomGameFlowChart",
+                changeToFlowChart: "roomGameBeforeConfig"
+            },
             shape: registerName.changeToOtherFlowChart,
             attr: {
-                label: "选房游戏流程",
-                data: "roomGameBeforeConfig"
+                label: "选房游戏流程"
             }
         },
         // #endregion
         // #region 5
         {
-            seat: "5_1",
-            name: "directConnectByURL",
+            data: {
+                seat: "5_1",
+                name: "directConnectByURL"
+            },
             shape: registerName.startOrEnd,
             attr: {
                 label: "透过网址直连",
             }
         },
         {
-            seat: "5_2",
-            name: "changeToNoRoomGameFlowChart",
+            data: {
+                seat: "5_2",
+                name: "changeToNoRoomGameFlowChart"
+            },
             shape: registerName.changeToOtherFlowChart,
             attr: {
                 label: "非选房游戏流程",
             }
         },
         {
-            seat: "5_3",
-            name: "popupRemaining",
+            data: {
+                seat: "5_3",
+                name: "popupRemaining"
+            },
             shape: registerName.popupRemaining,
             attr: {
                 size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
-            seat: "5_4",
-            name: "popupReturnGame",
+            data: {
+                seat: "5_4",
+                name: "popupReturnGame"
+            },
             shape: registerName.popupReturnGame,
             attr: {
                 size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
-            seat: "5_7",
-            name: "changeToNoRoomGameFlowChart",
+            data: {
+                seat: "5_7",
+                name: "changeToNoRoomGameFlowChart"
+            },
             shape: registerName.changeToOtherFlowChart,
             attr: {
                 label: "非选房游戏流程",
@@ -208,8 +254,10 @@ export const overviewConfig = {
         // #endregion
         // #region 6
         {
-            seat: "6_3",
-            name: "stopInLobby",
+            data: {
+                seat: "6_3",
+                name: "stopInLobby"
+            },
             shape: registerName.stopFlowChart,
             attr: {
                 label: "停在大厅",

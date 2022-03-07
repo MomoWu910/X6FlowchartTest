@@ -15,7 +15,7 @@
     "author": "",
     "license": "MIT",
     "browser": {
-        "fs": false   
+        "fs": false
     },
     "devDependencies": {
         "@types/node": "^16.11.9",
@@ -49,7 +49,7 @@
         "@types/node": "^16.11.9",
         "antd": "^4.18.8",
         "insert-css": "^2.0.0",
-        "loadash": "^1.0.0",
+        "lodash": "^1.0.0",
         "path-browserify": "^1.0.1"
     }
 }
