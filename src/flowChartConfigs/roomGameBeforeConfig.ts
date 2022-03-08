@@ -12,17 +12,17 @@ const DEFAULT_POPUP_HEIGHT = 90;
  * nodes: [
  * ...
  * {
- *      @param data (optional) 可自定義之與X6無關資料
+ *      @param data 可自定義之與X6無關資料
  *      {
- *           @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
- *           @param name (string) 節點名稱
- *           @param changeToFlowChart (string) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+ *          @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
+ *          @param name (string) 節點名稱
+ *          @param changeToFlowChart (string) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+ *          @param size (object) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
  *      }
- *      @param label (string) 節點上要顯示的文字
+ *      @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
  *      @param attr (obj) 可自定義之參數，包含但不限於以下
  *      {
- *           @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
- *           @param size (optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
+ *          @param label (string) 節點上要顯示的文字
  *      }
  * },
  * ...
@@ -109,33 +109,33 @@ export const roomGameBeforeConfig = {
             data: {
                 seat: "2_2",
                 name: "connectFailed",
+                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
             },
             shape: registerName.process,
             attr: {
-                label: "loading下方文案\n网络连接失败，请稍后再试",
-                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
+                label: "loading下方文案\n网络连接失败，请稍后再试"
             }
         },
         {
             data: {
                 seat: "2_4",
                 name: "connectFailed",
+                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
             },
             shape: registerName.process,
             attr: {
-                label: "loading下方文案\n网络连接失败，请稍后再试",
-                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
+                label: "loading下方文案\n网络连接失败，请稍后再试"
             }
         },
         {
             data: {
                 seat: "2_6",
                 name: "connectFailed",
+                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
             },
             shape: registerName.process,
             attr: {
-                label: "loading下方文案\n网络连接失败，请稍后再试",
-                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
+                label: "loading下方文案\n网络连接失败，请稍后再试"
             }
         },
         // #endregion
@@ -206,30 +206,30 @@ export const roomGameBeforeConfig = {
             data: {
                 seat: "4_2",
                 name: "popupConnectFailed",
+                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT }
             },
             shape: registerName.popupConnectFailed,
             attr: {
-                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
             data: {
                 seat: "4_4",
                 name: "popupConnectFailed",
+                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT }
             },
             shape: registerName.popupConnectFailed,
             attr: {
-                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
             data: {
                 seat: "4_6",
                 name: "popupConnectFailed",
+                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT }
             },
             shape: registerName.popupConnectFailed,
             attr: {
-                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         // #endregion
@@ -238,22 +238,22 @@ export const roomGameBeforeConfig = {
             data: {
                 seat: "5_3",
                 name: "notOneGameBackLobby",
+                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT }
             },
             shape: registerName.stopFlowChart,
             attr: {
-                label: "非单一游戏: 返回大厅\n单一游戏: 黑遮罩+弹窗文案",
-                size: { w: DEFAULT_RECT_WIDTH + 30, h: DEFAULT_RECT_HEIGHT },
+                label: "非单一游戏: 返回大厅\n单一游戏: 黑遮罩+弹窗文案"
             }
         },
         {
             data: {
                 seat: "5_6",
                 name: "maskAndToast",
+                size: { w: DEFAULT_RECT_WIDTH + 50, h: DEFAULT_RECT_HEIGHT }
             },
             shape: registerName.stopFlowChart,
             attr: {
-                label: "黑遮罩+toast\n“当前连接已过期，请重新登录”",
-                size: { w: DEFAULT_RECT_WIDTH + 50, h: DEFAULT_RECT_HEIGHT },
+                label: "黑遮罩+toast\n“当前连接已过期，请重新登录”"
             }
         },
         // #endregion

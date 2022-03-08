@@ -4,6 +4,7 @@ import { cssConfig, colorConfig, zIndex, registerName } from './constants/config
 import { gsap } from "gsap";
 import { overviewConfig } from './flowChartConfigs/overviewConfig';
 import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
+import { overviewConfig_n } from './flowChartConfigs/overviewConfig_n';
 import { ImageKey } from './constants/assets';
 import _ from 'lodash';
 
@@ -36,12 +37,7 @@ const EDGE_LENGTH_H = 200;
 const DEFAULT_RECT_WIDTH = 120;
 const DEFAULT_RECT_HEIGHT = 60;
 const DEFAULT_FONTSIZE = 12;
-import * as path from 'path';
-import * as fs from 'fs';
 
-const saveJSONPath = path.join(__dirname, './saveJSON');
-
-// const saveJSONPath = './saveJSON/';
 const emptyPage = {
     level: 0,
     nodes: []
@@ -61,32 +57,14 @@ export default class CodeControl {
         preWork();                          // 設定css樣式
         this.initConfigs([                  // 初始化config檔
             overviewConfig,
-            roomGameBeforeConfig
+            roomGameBeforeConfig,
+            overviewConfig_n
         ]);
         this.initGraph();                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
         this.drawFromConfig(overviewConfig);
-        // this.drawFromConfig(roomGameBeforeConfig);
-
-        // const overviewConfigJSON = JSON.stringify(overviewConfig);
-        // this.download(overviewConfig.name+'.json', overviewConfigJSON);
-    }
-
-    public download(filename, text) {
-        var pom = document.createElement('a');
-        pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
-        pom.setAttribute('download', filename);
-
-        if (document.createEvent) {
-            var event = document.createEvent('MouseEvents');
-            event.initEvent('click', true, true);
-            pom.dispatchEvent(event);
-        }
-        else {
-            pom.click();
-        }
     }
 
     public drawFromConfig(config: any) {
@@ -117,7 +95,7 @@ export default class CodeControl {
                     if (flow[j + 1].split("_")[2]) {
                         target = this.nodesArray[`${flow[j + 1].split("_")[0]}_${flow[j + 1].split("_")[1]}`];
                     }
-                    this.drawEdge(source, target, 'v', registerName.normalEdge, { label: checkYesOrNo });
+                    this.drawEdge(source, target, 'v', registerName.normalEdge, { label: checkYesOrNo, sourceSeat: flow[j], targetSeat: flow[j + 1] });
                 }
             }
         }
@@ -139,7 +117,7 @@ export default class CodeControl {
                     if (flow[j + 1].split("_")[2]) {
                         target = this.nodesArray[`${flow[j + 1].split("_")[0]}_${flow[j + 1].split("_")[1]}`];
                     }
-                    this.drawEdge(source, target, 'h', registerName.normalEdge, { label: checkYesOrNo });
+                    this.drawEdge(source, target, 'h', registerName.normalEdge, { label: checkYesOrNo, sourceSeat: flow[j], targetSeat: flow[j + 1] });
                 }
             }
         }
@@ -156,7 +134,7 @@ export default class CodeControl {
                 }
 
                 const target = { target: this.nodesArray[flow[1]], port: flow[3] };
-                this.drawEdge(source, target, 'l', registerName.lEdge, { label: checkYesOrNo });
+                this.drawEdge(source, target, 'l', registerName.lEdge, { label: checkYesOrNo, sourceSeat: flow[0], targetSeat: flow[1], sourcePort: flow[2], targetPort: flow[3] });
             }
         }
 
@@ -178,23 +156,107 @@ export default class CodeControl {
     }
 
     // #region JSON相關
+    // 當前畫布所有節點轉成config格式，並回傳
     public nodesToJSON(nodes: Node[]) {
         let nodesJSON: any[] = [];
         nodes.map((node) => {
-            let json = {
+            let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
+            let json = `{
                 data: {
-                    seat: node.data.seat,
-                    name: node.data.name,
-                    changeToFlowChart: node.data.changeToFlowChart
+                    seat: "${node.data.seat}",
+                    name: "${node.data.name}",
+                    changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
+                    size: ${node.data.size ? JSON.stringify(node.data.size) : null}
                 },
-                shape: node.shape,
+                shape: "${node.shape}",
                 attr: {
-                    label: node.attrs ? node.attrs.text.text : '',
+                    label: ${label}
                 }
-            }
+            }`;
             nodesJSON.push(json);
         })
-        console.warn(nodesJSON);
+        return nodesJSON;
+    }
+
+    // 當前畫布所有邊轉成config格式，並回傳
+    public edgesToJSON(edges: Edge[]) {
+        let edgesJSON: any = {};
+        let vFlows: any[] = [], vFlow: any[] = [];
+        let hFlows: any[] = [], hFlow: any[] = [];
+        let lFlows: any[] = [], lFlow: any[] = [];
+
+        edges.map((edge, index) => {
+            const direction = edge.data.direction;
+
+            // 先暫定這樣寫，風險在於edges萬一不是按照我的畫線順序排序的話就會出錯
+            // 先檢查是否已經換行或換列，是的話就push整個array給flows，並清空
+            // 接著如果沒有起點座標就push，有的話就檢查終點座標沒有就push
+            if (direction === 'v' || direction === 'V') {
+                if (vFlow.length > 0) {
+                    let nowSeat = vFlow[vFlow.length - 1].split('_')[0];
+                    let nextSeat = edge.data.sourceSeat.split('_')[0];
+                    if (nowSeat !== nextSeat) {
+                        vFlows.push(vFlow);
+                        vFlow = [];
+                    }
+                }
+
+                if (vFlow.find(e => e === edge.data.sourceSeat) === undefined) vFlow.push(edge.data.sourceSeat);
+                if (vFlow.find(e => e === edge.data.targetSeat) === undefined) vFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'h' || direction === 'H') {
+                if (hFlow.length > 0) {
+                    let nowSeat = hFlow[hFlow.length - 1].split('_')[1];
+                    let nextSeat = edge.data.sourceSeat.split('_')[1];
+                    if (nowSeat !== nextSeat) {
+                        hFlows.push(hFlow);
+                        hFlow = [];
+                    }
+                }
+
+                if (hFlow.find(e => e === edge.data.sourceSeat) === undefined) hFlow.push(edge.data.sourceSeat);
+                if (hFlow.find(e => e === edge.data.targetSeat) === undefined) hFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'l' || direction === 'L') {
+                lFlow = [edge.data.sourceSeat, edge.data.targetSeat, edge.data.sourcePort, edge.data.targetPort];
+                lFlows.push(lFlow);
+                lFlow = [];
+            }
+
+            if (index === edges.length - 1) {
+                if (vFlow) vFlows.push(vFlow);
+                if (hFlow) hFlows.push(hFlow);
+            }
+
+        });
+
+        edgesJSON = { vFlows: vFlows, hFlows: hFlows, lFlows: lFlows };
+        return edgesJSON;
+    }
+
+    // 根據編輯過的畫布撰寫一個新版config
+    public getNewVersionConfig() {
+        const nodes = this.graph.getNodes();
+        const edges = this.graph.getEdges();
+        const nodesJSON = this.nodesToJSON(nodes);
+        const edgesJSON = this.edgesToJSON(edges);
+
+        // 版號都先幫他加一版
+        const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
+
+        const newConfig = `
+        export const ${this.nowPage.name} = {
+            name: "${this.nowPage.name}",
+            level: ${this.nowPage.level},
+            version: "${this.checkIfEdited() ? newVersion : this.nowPage.version}",
+            nodes: [${nodesJSON}],
+            vFlows: ${JSON.stringify(edgesJSON.vFlows)},
+            hFlows: ${JSON.stringify(edgesJSON.hFlows)},
+            lFlows: ${JSON.stringify(edgesJSON.lFlows)},
+        }`
+        return newConfig;
     }
 
     // 檢查是否編輯過
@@ -203,15 +265,6 @@ export default class CodeControl {
         const originJSON = this.saveOriginJSON[this.nowPage.name];
         console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
         return !_.isEqual(editedJSON, originJSON);
-    }
-
-    // 根據編輯過的畫布撰寫一個新版config
-    public getNewVersionConfig() {
-        const nodes = this.graph.getNodes();
-        const edges = this.graph.getEdges();
-        console.warn('nodes', nodes);
-        console.warn('edges', edges);
-        this.nodesToJSON(nodes);
     }
     // #endregion
 
@@ -251,9 +304,17 @@ export default class CodeControl {
      * @param posX 座標x
      * @param posY 座標y
      * @param shape 形狀, 預設圓角矩形
-     * @param option {
-     *      可自定義項目
-     *      label: 文字, 需注意換行要加 \n
+     * @param attr X6相關參數
+     * {
+     *      @param label (string)(optional) 文字, 需注意換行要加 \n
+     *      ...其他功能後續補充
+     * }
+     * @param data X6以外自定義參數
+     * {
+     *      @param seat (string) 節點對應座標
+     *      @param name (string) 節點名稱
+     *      @param size (obj)(optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
+     *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
      *      fontSize: 文字大小
      *      ...其他功能後續補充
      * }
@@ -265,7 +326,6 @@ export default class CodeControl {
             shape: shape,
             attrs: {
                 label: {
-                    // text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
             },
@@ -277,14 +337,15 @@ export default class CodeControl {
 
         if (attr && attr.label) node.label = attr.label;
         if (attr && attr.fontSize) node.attr('label/fontSize', attr.fontSize);
-        if (attr && attr.size) {
-            node.resize(attr.size.w, attr.size.h);
-            const adjustX = attr.size.w > DEFAULT_RECT_WIDTH ? -(attr.size.w - DEFAULT_RECT_WIDTH) / 2 : (attr.size.w - DEFAULT_RECT_WIDTH) / 2;
-            const adjustY = attr.size.h > DEFAULT_RECT_HEIGHT ? -(attr.size.h - DEFAULT_RECT_HEIGHT) / 2 : (attr.size.h - DEFAULT_RECT_HEIGHT) / 2;
-            node.position(posX + adjustX, posY + adjustY);
-        }
         if (shape === registerName.changeToOtherFlowChart) {
             node.data.changeToFlowChart = data.changeToFlowChart;
+        }
+        if (data && data.size) {
+            node.resize(data.size.w, data.size.h);
+            const adjustX = data.size.w > DEFAULT_RECT_WIDTH ? -(data.size.w - DEFAULT_RECT_WIDTH) / 2 : (data.size.w - DEFAULT_RECT_WIDTH) / 2;
+            const adjustY = data.size.h > DEFAULT_RECT_HEIGHT ? -(data.size.h - DEFAULT_RECT_HEIGHT) / 2 : (data.size.h - DEFAULT_RECT_HEIGHT) / 2;
+            node.position(posX + adjustX, posY + adjustY);
+            node.data.size = data.size;
         }
         if (data && data.seat) node.data.seat = data.seat;
 
@@ -298,9 +359,16 @@ export default class CodeControl {
      * @param target 到哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
      * @param direction 方向，流程圖大部分不是上到下(v)就是左到右(h)，預設上到下
      * @param shape 哪種類型的邊，預設白色直線單箭頭
-     * @param option 其他參數調整，目前沒有
+     * @param data 自定義參數
+     * {
+     *      @param label (string)(optional) 邊上顯示文字，通常是“是”、“否”
+     *      @param sourceSeat (string) 起點座標
+     *      @param targetSeat (string) 終點座標
+     *      @param sourcePort (string) 起點port
+     *      @param targetPort (string) 終點port
+     * }
      */
-    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, option: any = {}) {
+    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, data: any = {}) {
         let sourceCheck, targetCheck;
         if (direction === 'v' || direction === 'V') {
             sourceCheck = { cell: source, port: 'bottom' };
@@ -324,15 +392,22 @@ export default class CodeControl {
                     text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
+            },
+            data: {
+                direction: direction,
+                sourceSeat: data.sourceSeat,
+                targetSeat: data.targetSeat,
+                sourcePort: data.sourcePort ? data.sourcePort : '',
+                targetPort: data.targetPort ? data.targetPort : '',
             }
         });
 
-        if (option && option.label) {
-            if (option.label === 'n' || option.label === 'N') edge.appendLabel('否');
-            if (option.label === 'y' || option.label === 'Y') edge.appendLabel('是');
+        if (data && data.label) {
+            if (data.label === 'n' || data.label === 'N') edge.appendLabel('否');
+            if (data.label === 'y' || data.label === 'Y') edge.appendLabel('是');
 
             edge.data = {
-                label: option.label
+                label: data.label
             };
         }
     }
@@ -458,14 +533,10 @@ export default class CodeControl {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
-            // console.log(this.prePages)
-            // this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
-            // else this.backToPrePage();
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
-            // console.log(cell)
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {
@@ -503,13 +574,8 @@ export default class CodeControl {
                     return;
                 }
 
-                this.getNewVersionConfig();
-                // this.editedConfigs[this.nowPage.name] = this.nowPage;
-                // const ifEdited = this.checkIfEdited();
-                // let downConfig = this.nowPage;
-                // if (ifEdited) downConfig = this.getNewVersionConfig();
-                // const configJSON = JSON.stringify(downConfig);
-                // this.download(this.nowPage.name + '.json', configJSON);
+                let downConfig = this.getNewVersionConfig();
+                this.download(this.nowPage.name + '.ts', downConfig);
             });
         }
 
@@ -949,6 +1015,21 @@ export default class CodeControl {
             this.originConfigs[config.name] = JSON.parse(JSON.stringify(config));
             this.editedConfigs[config.name] = JSON.parse(JSON.stringify(config));
         });
+    }
+
+    public download(filename, text) {
+        var pom = document.createElement('a');
+        pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
+        pom.setAttribute('download', filename);
+
+        if (document.createEvent) {
+            var event = document.createEvent('MouseEvents');
+            event.initEvent('click', true, true);
+            pom.dispatchEvent(event);
+        }
+        else {
+            pom.click();
+        }
     }
     // #endregion
 }

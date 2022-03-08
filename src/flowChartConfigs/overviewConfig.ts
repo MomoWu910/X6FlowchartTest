@@ -10,17 +10,17 @@ const DEFAULT_POPUP_HEIGHT = 90;
  * nodes: [
  * ...
  * {
- *      @param data (optional) 可自定義之與X6無關資料
+ *      @param data 可自定義之與X6無關資料
  *      {
  *          @param seat (string) ex. 1_2 會轉換為 (START_POS_X, START_POS_Y + EDGE_LENGTH_V)
  *          @param name (string) 節點名稱
  *          @param changeToFlowChart (string) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+ *          @param size (object) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
  *      }
- *      @param label (string) 節點上要顯示的文字
+ *      @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
  *      @param attr (obj) 可自定義之參數，包含但不限於以下
  *      {
-*           @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
- *          @param size (optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
+ *          @param label (string) 節點上要顯示的文字
  *      }
  * },
  * ...
@@ -74,12 +74,12 @@ export const overviewConfig = {
         {
             data: {
                 seat: "1_4",
-                name: "waitingLoading"
+                name: "waitingLoading",
+                size: { w: 180, h: 90 },
             },
             shape: registerName.process,
             attr: {
                 label: "载入完成后\n\n背后初始化游戏\n显示文案:\n'正在登陆游戏，请稍候'",
-                size: { w: 180, h: 90 },
             }
         },
         {
@@ -224,21 +224,21 @@ export const overviewConfig = {
         {
             data: {
                 seat: "5_3",
-                name: "popupRemaining"
+                name: "popupRemaining",
+                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             },
             shape: registerName.popupRemaining,
             attr: {
-                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
             data: {
                 seat: "5_4",
-                name: "popupReturnGame"
+                name: "popupReturnGame",
+                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             },
             shape: registerName.popupReturnGame,
             attr: {
-                size: { w: DEFAULT_POPUP_WIDTH, h: DEFAULT_POPUP_HEIGHT },
             }
         },
         {
