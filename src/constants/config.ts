@@ -31,9 +31,11 @@ export const zIndex = {
     BACKGROUND_NODE: 1,
     NODE: 2,
     EDGE: 2,
+    TIP: 3,
 }
 
 export const registerName = {
+    tipDialog: 'tipDialog-rect',
     // node
     startOrEnd: 'startOrEnd-rect',
     changeToOtherFlowChart: 'changeToOtherFlowChart-rect',

@@ -34,6 +34,9 @@ const START_POS_Y = 100;
 const EDGE_LENGTH_V = 140;
 const EDGE_LENGTH_H = 200;
 
+const TIP_DIALOG_ADJUST_X = 90;
+const TIP_DIALOG_ADJUST_Y = 90;
+
 const DEFAULT_RECT_WIDTH = 120;
 const DEFAULT_RECT_HEIGHT = 60;
 const DEFAULT_FONTSIZE = 12;
@@ -52,6 +55,7 @@ export default class CodeControl {
     public nowPage: any = {};
     public prePages: any = {};
     public canEditText: boolean = false;
+    public tipDialog: any;
 
     constructor() {
         preWork();                          // 設定css樣式
@@ -167,6 +171,7 @@ export default class CodeControl {
                     name: "${node.data.name}",
                     changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
                     size: ${node.data.size ? JSON.stringify(node.data.size) : null}
+                    tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
                 },
                 shape: "${node.shape}",
                 attr: {
@@ -348,6 +353,7 @@ export default class CodeControl {
             node.data.size = data.size;
         }
         if (data && data.seat) node.data.seat = data.seat;
+        if (data && data.tipContent) node.data.tipContent = data.tipContent;
 
         return node;
     }
@@ -537,6 +543,17 @@ export default class CodeControl {
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
+            // console.log(cell)
+            const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
+            const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
+            const attr = {
+                label: cell.data.tipContent ? cell.data.tipContent : 'test'
+            };
+            this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+        })
+
+        this.graph.on('node:mouseleave', ({ cell }) => {
+            this.graph.removeNode(this.tipDialog);
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {
@@ -719,6 +736,32 @@ export default class CodeControl {
             ],
         };
 
+        // tip，圓角矩形，黑，白匡
+        Graph.registerNode(
+            registerName.tipDialog,
+            {
+                inherit: 'rect',
+                width: DEFAULT_RECT_WIDTH * 2,
+                height: DEFAULT_RECT_HEIGHT * 2,
+                attrs: {
+                    body: {
+                        rx: 15,
+                        ry: 15,
+                        strokeWidth: 2,
+                        stroke: '#cccccc',
+                        fill: '#000000',
+                    },
+                    text: {
+                        fontSize: DEFAULT_FONTSIZE,
+                        fill: '#ffffff',
+                    },
+                },
+                ports: { ...ports },
+                zIndex: zIndex.TIP,
+            },
+            true,
+        );
+
         // 開始或結束，圓角矩形，綠
         Graph.registerNode(
             registerName.startOrEnd,
@@ -841,6 +884,7 @@ export default class CodeControl {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );
@@ -865,6 +909,7 @@ export default class CodeControl {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );
@@ -889,6 +934,7 @@ export default class CodeControl {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );

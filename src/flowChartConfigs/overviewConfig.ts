@@ -16,6 +16,7 @@ const DEFAULT_POPUP_HEIGHT = 90;
  *          @param name (string) 節點名稱
  *          @param changeToFlowChart (string) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
  *          @param size (object) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
+ *          @param tipContent (string) 滑鼠hover時的tip要顯示的文字
  *      }
  *      @param shape (string) 節點形式，引用 registerName 裡的設定，同時也需要對應到 initGraphNode 中註冊的自定義形式
  *      @param attr (obj) 可自定義之參數，包含但不限於以下
@@ -192,7 +193,8 @@ export const overviewConfig = {
             data: {
                 seat: "4_7",
                 name: "changeToRoomGameFlowChart",
-                changeToFlowChart: "roomGameBeforeConfig"
+                changeToFlowChart: "roomGameBeforeConfig",
+                tipContent: "点击即可切换至 选房游戏流程 "
             },
             shape: registerName.changeToOtherFlowChart,
             attr: {
