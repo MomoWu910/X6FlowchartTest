@@ -43,6 +43,7 @@
         "webpack-manifest-plugin": "^4.0.2"
     },
     "dependencies": {
+        "@antv/g2": "^4.1.47",
         "@antv/x6": "^1.30.0",
         "@babel/polyfill": "^7.12.1",
         "@types/insert-css": "^2.0.1",
