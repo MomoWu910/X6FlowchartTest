@@ -4,12 +4,21 @@ import { cssConfig, colorConfig, zIndex, registerName } from './constants/config
 import { gsap } from "gsap";
 import { overviewConfig } from './flowChartConfigs/overviewConfig';
 import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
+import { overviewConfig_n } from './flowChartConfigs/overviewConfig_n';
 import { ImageKey } from './constants/assets';
+import _ from 'lodash';
 
 /* html css 相關樣式建立
 *   graphContainer: 畫板
 */
 const GRAPH_NAME = 'code-graph-container';
+const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
+const ZOOM_IN_BTN_NAME = 'zoomIn';
+const ZOOM_OUT_BTN_NAME = 'zoomOut';
+const EDIT_TEXT_BTN_NAME = 'edit';
+const CLEAR_BTN_NAME = 'clear';
+const DOWNLOAD_BTN_NAME = 'download';
+// const READ_FILE = 'readFile';
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
     const container = document.getElementById('container')!;
@@ -25,29 +34,41 @@ const START_POS_Y = 100;
 const EDGE_LENGTH_V = 140;
 const EDGE_LENGTH_H = 200;
 
+const TIP_DIALOG_ADJUST_X = 90;
+const TIP_DIALOG_ADJUST_Y = 90;
+
 const DEFAULT_RECT_WIDTH = 120;
 const DEFAULT_RECT_HEIGHT = 60;
 const DEFAULT_FONTSIZE = 12;
 
-export default class Demo {
+const emptyPage = {
+    level: 0,
+    nodes: []
+}
+
+export default class CodeControl {
     public graph: any;
     public nodesArray: any = {};
-    public configs: any = {};
+    public originConfigs: any = {};
+    public saveOriginJSON: any = {};
+    public editedConfigs: any = {};
     public nowPage: any = {};
     public prePages: any = {};
+    public canEditText: boolean = false;
+    public tipDialog: any;
 
     constructor() {
         preWork();                          // 設定css樣式
         this.initConfigs([                  // 初始化config檔
             overviewConfig,
-            roomGameBeforeConfig
+            roomGameBeforeConfig,
+            overviewConfig_n
         ]);
         this.initGraph();                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
         this.drawFromConfig(overviewConfig);
-        // this.drawFromConfig(roomGameBeforeConfig);
     }
 
     public drawFromConfig(config: any) {
@@ -56,10 +77,9 @@ export default class Demo {
         const nodes = config.nodes;
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
-            const posX = node.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X;
-            const posY = node.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y;
-            let attr = node.attr;
-            this.nodesArray[node.seat] = this.drawNode(posX, posY, node.shape, attr);
+            const posX = node.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X;
+            const posY = node.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y;
+            this.nodesArray[node.data.seat] = this.drawNode(posX, posY, node.shape, node.attr, node.data);
         }
 
         const vFlows = config.vFlows;
@@ -79,7 +99,7 @@ export default class Demo {
                     if (flow[j + 1].split("_")[2]) {
                         target = this.nodesArray[`${flow[j + 1].split("_")[0]}_${flow[j + 1].split("_")[1]}`];
                     }
-                    this.drawEdge(source, target, 'v', registerName.normalEdge, { label: checkYesOrNo });
+                    this.drawEdge(source, target, 'v', registerName.normalEdge, { label: checkYesOrNo, sourceSeat: flow[j], targetSeat: flow[j + 1] });
                 }
             }
         }
@@ -101,7 +121,7 @@ export default class Demo {
                     if (flow[j + 1].split("_")[2]) {
                         target = this.nodesArray[`${flow[j + 1].split("_")[0]}_${flow[j + 1].split("_")[1]}`];
                     }
-                    this.drawEdge(source, target, 'h', registerName.normalEdge, { label: checkYesOrNo });
+                    this.drawEdge(source, target, 'h', registerName.normalEdge, { label: checkYesOrNo, sourceSeat: flow[j], targetSeat: flow[j + 1] });
                 }
             }
         }
@@ -118,20 +138,142 @@ export default class Demo {
                 }
 
                 const target = { target: this.nodesArray[flow[1]], port: flow[3] };
-                this.drawEdge(source, target, 'l', registerName.lEdge, { label: checkYesOrNo });
+                this.drawEdge(source, target, 'l', registerName.lEdge, { label: checkYesOrNo, sourceSeat: flow[0], targetSeat: flow[1], sourcePort: flow[2], targetPort: flow[3] });
             }
         }
 
         this.graph.centerContent();
+        if (!this.saveOriginJSON[this.nowPage.name]) this.saveOriginJSON[this.nowPage.name] = this.graph.toJSON();
     }
 
     // 轉場
     public changeFlowChart(configName: string) {
         this.graph.clearCells();
+
+        // 暫存本頁名稱於及當前level，用於返回本頁
         this.prePages[this.nowPage.level] = this.nowPage.name;
-        this.drawFromConfig(this.configs[configName]);
+
+        // 暫存本頁
+        this.editedConfigs[this.nowPage.name] = this.nowPage;
+
+        this.drawFromConfig(this.editedConfigs[configName]);
     }
 
+    // #region JSON相關
+    // 當前畫布所有節點轉成config格式，並回傳
+    public nodesToJSON(nodes: Node[]) {
+        let nodesJSON: any[] = [];
+        nodes.map((node) => {
+            let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
+            let json = `{
+                data: {
+                    seat: "${node.data.seat}",
+                    name: "${node.data.name}",
+                    changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
+                    size: ${node.data.size ? JSON.stringify(node.data.size) : null}
+                    tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
+                },
+                shape: "${node.shape}",
+                attr: {
+                    label: ${label}
+                }
+            }`;
+            nodesJSON.push(json);
+        })
+        return nodesJSON;
+    }
+
+    // 當前畫布所有邊轉成config格式，並回傳
+    public edgesToJSON(edges: Edge[]) {
+        let edgesJSON: any = {};
+        let vFlows: any[] = [], vFlow: any[] = [];
+        let hFlows: any[] = [], hFlow: any[] = [];
+        let lFlows: any[] = [], lFlow: any[] = [];
+
+        edges.map((edge, index) => {
+            const direction = edge.data.direction;
+
+            // 先暫定這樣寫，風險在於edges萬一不是按照我的畫線順序排序的話就會出錯
+            // 先檢查是否已經換行或換列，是的話就push整個array給flows，並清空
+            // 接著如果沒有起點座標就push，有的話就檢查終點座標沒有就push
+            if (direction === 'v' || direction === 'V') {
+                if (vFlow.length > 0) {
+                    let nowSeat = vFlow[vFlow.length - 1].split('_')[0];
+                    let nextSeat = edge.data.sourceSeat.split('_')[0];
+                    if (nowSeat !== nextSeat) {
+                        vFlows.push(vFlow);
+                        vFlow = [];
+                    }
+                }
+
+                if (vFlow.find(e => e === edge.data.sourceSeat) === undefined) vFlow.push(edge.data.sourceSeat);
+                if (vFlow.find(e => e === edge.data.targetSeat) === undefined) vFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'h' || direction === 'H') {
+                if (hFlow.length > 0) {
+                    let nowSeat = hFlow[hFlow.length - 1].split('_')[1];
+                    let nextSeat = edge.data.sourceSeat.split('_')[1];
+                    if (nowSeat !== nextSeat) {
+                        hFlows.push(hFlow);
+                        hFlow = [];
+                    }
+                }
+
+                if (hFlow.find(e => e === edge.data.sourceSeat) === undefined) hFlow.push(edge.data.sourceSeat);
+                if (hFlow.find(e => e === edge.data.targetSeat) === undefined) hFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'l' || direction === 'L') {
+                lFlow = [edge.data.sourceSeat, edge.data.targetSeat, edge.data.sourcePort, edge.data.targetPort];
+                lFlows.push(lFlow);
+                lFlow = [];
+            }
+
+            if (index === edges.length - 1) {
+                if (vFlow) vFlows.push(vFlow);
+                if (hFlow) hFlows.push(hFlow);
+            }
+
+        });
+
+        edgesJSON = { vFlows: vFlows, hFlows: hFlows, lFlows: lFlows };
+        return edgesJSON;
+    }
+
+    // 根據編輯過的畫布撰寫一個新版config
+    public getNewVersionConfig() {
+        const nodes = this.graph.getNodes();
+        const edges = this.graph.getEdges();
+        const nodesJSON = this.nodesToJSON(nodes);
+        const edgesJSON = this.edgesToJSON(edges);
+
+        // 版號都先幫他加一版
+        const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
+
+        const newConfig = `
+        export const ${this.nowPage.name} = {
+            name: "${this.nowPage.name}",
+            level: ${this.nowPage.level},
+            version: "${this.checkIfEdited() ? newVersion : this.nowPage.version}",
+            nodes: [${nodesJSON}],
+            vFlows: ${JSON.stringify(edgesJSON.vFlows)},
+            hFlows: ${JSON.stringify(edgesJSON.hFlows)},
+            lFlows: ${JSON.stringify(edgesJSON.lFlows)},
+        }`
+        return newConfig;
+    }
+
+    // 檢查是否編輯過
+    public checkIfEdited() {
+        const editedJSON = this.graph.toJSON();
+        const originJSON = this.saveOriginJSON[this.nowPage.name];
+        console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
+        return !_.isEqual(editedJSON, originJSON);
+    }
+    // #endregion
+
+    // #region 左側按鈕功能
     // 返回上一張流程圖
     public backToPrePage() {
         const nowLevel = this.nowPage.level;
@@ -140,9 +282,25 @@ export default class Demo {
             return;
         }
         this.graph.clearCells();
+
+        // 清空當前level
         this.prePages[this.nowPage.level] = '';
-        this.drawFromConfig(this.configs[this.prePages[nowLevel - 1]]);
+
+        // 暫存本頁
+        this.editedConfigs[this.nowPage.name] = this.nowPage;
+        this.drawFromConfig(this.editedConfigs[this.prePages[nowLevel - 1]]);
     }
+
+    // zoom in
+    public zoomIn() {
+        this.graph.zoom(0.1);
+    }
+
+    // zoom out
+    public zoomOut() {
+        this.graph.zoom(-0.1);
+    }
+    // #endregion
 
     // #region 畫圖相關
     // 畫節點
@@ -151,40 +309,51 @@ export default class Demo {
      * @param posX 座標x
      * @param posY 座標y
      * @param shape 形狀, 預設圓角矩形
-     * @param option {
-     *      可自定義項目
-     *      label: 文字, 需注意換行要加 \n
+     * @param attr X6相關參數
+     * {
+     *      @param label (string)(optional) 文字, 需注意換行要加 \n
+     *      ...其他功能後續補充
+     * }
+     * @param data X6以外自定義參數
+     * {
+     *      @param seat (string) 節點對應座標
+     *      @param name (string) 節點名稱
+     *      @param size (obj)(optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
+     *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
      *      fontSize: 文字大小
      *      ...其他功能後續補充
      * }
      */
-    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, option: any = {}) {
+    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
         const node = this.graph.addNode({
             x: posX,
             y: posY,
             shape: shape,
             attrs: {
                 label: {
-                    text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
             },
             data: {
+                name: data.name,
                 changeToFlowChart: ''
             }
         });
 
-        if (option && option.label) node.attr('label/text', option.label);
-        if (option && option.fontSize) node.attr('label/fontSize', option.fontSize);
-        if (option && option.size) {
-            node.resize(option.size.w, option.size.h);
-            const adjustX = option.size.w > DEFAULT_RECT_WIDTH ? -(option.size.w - DEFAULT_RECT_WIDTH) / 2 : (option.size.w - DEFAULT_RECT_WIDTH) / 2;
-            const adjustY = option.size.h > DEFAULT_RECT_HEIGHT ? -(option.size.h - DEFAULT_RECT_HEIGHT) / 2 : (option.size.h - DEFAULT_RECT_HEIGHT) / 2;
-            node.position(posX + adjustX, posY + adjustY);
-        }
+        if (attr && attr.label) node.label = attr.label;
+        if (attr && attr.fontSize) node.attr('label/fontSize', attr.fontSize);
         if (shape === registerName.changeToOtherFlowChart) {
-            node.data.changeToFlowChart = option.data;
+            node.data.changeToFlowChart = data.changeToFlowChart;
         }
+        if (data && data.size) {
+            node.resize(data.size.w, data.size.h);
+            const adjustX = data.size.w > DEFAULT_RECT_WIDTH ? -(data.size.w - DEFAULT_RECT_WIDTH) / 2 : (data.size.w - DEFAULT_RECT_WIDTH) / 2;
+            const adjustY = data.size.h > DEFAULT_RECT_HEIGHT ? -(data.size.h - DEFAULT_RECT_HEIGHT) / 2 : (data.size.h - DEFAULT_RECT_HEIGHT) / 2;
+            node.position(posX + adjustX, posY + adjustY);
+            node.data.size = data.size;
+        }
+        if (data && data.seat) node.data.seat = data.seat;
+        if (data && data.tipContent) node.data.tipContent = data.tipContent;
 
         return node;
     }
@@ -196,9 +365,16 @@ export default class Demo {
      * @param target 到哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
      * @param direction 方向，流程圖大部分不是上到下(v)就是左到右(h)，預設上到下
      * @param shape 哪種類型的邊，預設白色直線單箭頭
-     * @param option 其他參數調整，目前沒有
+     * @param data 自定義參數
+     * {
+     *      @param label (string)(optional) 邊上顯示文字，通常是“是”、“否”
+     *      @param sourceSeat (string) 起點座標
+     *      @param targetSeat (string) 終點座標
+     *      @param sourcePort (string) 起點port
+     *      @param targetPort (string) 終點port
+     * }
      */
-    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, option: any = {}) {
+    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, data: any = {}) {
         let sourceCheck, targetCheck;
         if (direction === 'v' || direction === 'V') {
             sourceCheck = { cell: source, port: 'bottom' };
@@ -222,12 +398,23 @@ export default class Demo {
                     text: '',
                     fontSize: DEFAULT_FONTSIZE,
                 }
+            },
+            data: {
+                direction: direction,
+                sourceSeat: data.sourceSeat,
+                targetSeat: data.targetSeat,
+                sourcePort: data.sourcePort ? data.sourcePort : '',
+                targetPort: data.targetPort ? data.targetPort : '',
             }
         });
 
-        if (option && option.label) {
-            if (option.label === 'n' || option.label === 'N') edge.appendLabel('否');
-            if (option.label === 'y' || option.label === 'Y') edge.appendLabel('是');
+        if (data && data.label) {
+            if (data.label === 'n' || data.label === 'N') edge.appendLabel('否');
+            if (data.label === 'y' || data.label === 'Y') edge.appendLabel('是');
+
+            edge.data = {
+                label: data.label
+            };
         }
     }
     // #endregion
@@ -352,15 +539,72 @@ export default class Demo {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
-            // console.log(this.prePages)
-            // this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
-            else this.backToPrePage();
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
-            console.log(cell)
+            // console.log(cell)
+            const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
+            const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
+            const attr = {
+                label: cell.data.tipContent ? cell.data.tipContent : 'test'
+            };
+            this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
         })
+
+        this.graph.on('node:mouseleave', ({ cell }) => {
+            this.graph.removeNode(this.tipDialog);
+        })
+
+        this.graph.on('cell:dblclick', ({ cell, e }) => {
+            if (!this.canEditText) return;
+            const name = cell.isNode() ? 'node-editor' : 'edge-editor';
+            cell.removeTool(name);
+            cell.addTools({
+                name,
+                args: {
+                    event: e,
+                },
+            });
+        })
+
+        let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME);
+        if (backBtn) backBtn.addEventListener('click', () => { this.backToPrePage(); });
+
+        let zoomInBtn = document.getElementById(ZOOM_IN_BTN_NAME);
+        if (zoomInBtn) zoomInBtn.addEventListener('click', () => { this.zoomIn(); });
+        let zoomOutBtn = document.getElementById(ZOOM_OUT_BTN_NAME);
+        if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
+
+        let clearBtn = document.getElementById(CLEAR_BTN_NAME);
+        if (clearBtn) clearBtn.addEventListener('click', () => {
+            this.graph.clearCells();
+            this.prePages[this.nowPage.level] = this.nowPage.name;
+            this.nowPage = emptyPage;
+        });
+
+        let downloadBtn = document.getElementById(DOWNLOAD_BTN_NAME);
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                if (this.nowPage.level === 0) {
+                    console.warn('nothing to download!');
+                    return;
+                }
+
+                let downConfig = this.getNewVersionConfig();
+                this.download(this.nowPage.name + '.ts', downConfig);
+            });
+        }
+
+        let editTextBtn = document.getElementById(EDIT_TEXT_BTN_NAME);
+        if (editTextBtn) {
+            editTextBtn.addEventListener('click', () => {
+                this.canEditText = !this.canEditText;
+                const onOff = this.canEditText ? 'on' : 'off';
+                if (editTextBtn) editTextBtn.innerText = 'edit ' + onOff;
+            });
+        }
+
     }
 
     // 初始化图形定義
@@ -492,6 +736,32 @@ export default class Demo {
             ],
         };
 
+        // tip，圓角矩形，黑，白匡
+        Graph.registerNode(
+            registerName.tipDialog,
+            {
+                inherit: 'rect',
+                width: DEFAULT_RECT_WIDTH * 2,
+                height: DEFAULT_RECT_HEIGHT * 2,
+                attrs: {
+                    body: {
+                        rx: 15,
+                        ry: 15,
+                        strokeWidth: 2,
+                        stroke: '#cccccc',
+                        fill: '#000000',
+                    },
+                    text: {
+                        fontSize: DEFAULT_FONTSIZE,
+                        fill: '#ffffff',
+                    },
+                },
+                ports: { ...ports },
+                zIndex: zIndex.TIP,
+            },
+            true,
+        );
+
         // 開始或結束，圓角矩形，綠
         Graph.registerNode(
             registerName.startOrEnd,
@@ -614,6 +884,7 @@ export default class Demo {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );
@@ -638,6 +909,7 @@ export default class Demo {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );
@@ -662,6 +934,7 @@ export default class Demo {
                     },
                 },
                 ports: { ...ports },
+                zIndex: zIndex.NODE,
             },
             true,
         );
@@ -785,8 +1058,24 @@ export default class Demo {
     // 初始化config檔
     public initConfigs(configs: Array<any> = []) {
         configs.forEach(config => {
-            this.configs[config.name] = config;
+            this.originConfigs[config.name] = JSON.parse(JSON.stringify(config));
+            this.editedConfigs[config.name] = JSON.parse(JSON.stringify(config));
         });
+    }
+
+    public download(filename, text) {
+        var pom = document.createElement('a');
+        pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
+        pom.setAttribute('download', filename);
+
+        if (document.createEvent) {
+            var event = document.createEvent('MouseEvents');
+            event.initEvent('click', true, true);
+            pom.dispatchEvent(event);
+        }
+        else {
+            pom.click();
+        }
     }
     // #endregion
 }

@@ -1,32 +1,6 @@
 // #region cssConfig
 export const cssConfig =
     `
-*{
-    padding: 0;
-    margin: 0;
-}
-#main-canvas {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-}
-body {
-    overflow: hidden;
-}
-#container {
-    display: flex;
-    border: 1px solid #dfe3e8;
-}
-#stencil {
-    width: 180px;
-    height: 100%;
-    position: relative;
-    border-right: 1px solid #dfe3e8;
-}
-#graph-container {
-    width: calc(100% - 180px);
-    height: 100%;
-}
 #code-graph-container {
     width: 100%;
     height: 100%;
@@ -57,9 +31,11 @@ export const zIndex = {
     BACKGROUND_NODE: 1,
     NODE: 2,
     EDGE: 2,
+    TIP: 3,
 }
 
 export const registerName = {
+    tipDialog: 'tipDialog-rect',
     // node
     startOrEnd: 'startOrEnd-rect',
     changeToOtherFlowChart: 'changeToOtherFlowChart-rect',
