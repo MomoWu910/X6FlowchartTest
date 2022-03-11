@@ -170,7 +170,7 @@ export default class CodeControl {
                     seat: "${node.data.seat}",
                     name: "${node.data.name}",
                     changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
-                    size: ${node.data.size ? JSON.stringify(node.data.size) : null}
+                    size: ${node.data.size ? JSON.stringify(node.data.size) : null},
                     tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
                 },
                 shape: "${node.shape}",
@@ -544,16 +544,26 @@ export default class CodeControl {
 
         this.graph.on('node:mouseenter', ({ cell }) => {
             // console.log(cell)
-            const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
-            const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
-            const attr = {
-                label: cell.data.tipContent ? cell.data.tipContent : 'test'
-            };
-            this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+            if (this.tipDialog) {
+                this.graph.removeNode(this.tipDialog);
+                this.tipDialog = null;
+            }
+            if (cell.data) {
+                const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
+                const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
+                const attr = {
+                    label: cell.data.tipContent ? cell.data.tipContent : 'test',
+                    fontSize: 15,
+                };
+                this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+            }
         })
 
         this.graph.on('node:mouseleave', ({ cell }) => {
-            this.graph.removeNode(this.tipDialog);
+            if (this.tipDialog) {
+                this.graph.removeNode(this.tipDialog);
+                this.tipDialog = null;
+            }
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {

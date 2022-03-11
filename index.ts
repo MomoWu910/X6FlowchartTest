@@ -3,5 +3,5 @@ import CodeControl from './src/codeControl';
 import ChartTest from './src/chartTest';
 
 // new Demo();
-// new CodeControl();
-new ChartTest();
+new CodeControl();
+// new ChartTest();

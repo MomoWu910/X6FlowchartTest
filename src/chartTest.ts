@@ -36,7 +36,7 @@ export default class ChartTest {
 
     public initChart() {
         this.chart = new Chart({
-            container: 'container',
+            container: 'chartContainer',
             autoFit: true,
         });
         this.chart.legend(false);
