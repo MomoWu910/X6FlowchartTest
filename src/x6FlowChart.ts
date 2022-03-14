@@ -1,21 +1,12 @@
 import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
-import { gsap } from "gsap";
-import { overviewConfig } from './flowChartConfigs/overviewConfig';
-import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
-import { overviewConfig_n } from './flowChartConfigs/overviewConfig_n';
 import { ImageKey } from './constants/assets';
 import _ from 'lodash';
 
-import popupRemaining from '../res/nodeAssets/popupRemaining.png';
-import popupReturnGame from '../res/nodeAssets/popupReturnGame.png';
-import popupConnectFailed from '../res/nodeAssets/popupConnectFailed.png';
+import { overviewConfig } from './flowChartConfigs/overviewConfig';
+import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
 
-
-/* html css 相關樣式建立
-*   graphContainer: 畫板
-*/
 const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
 const ZOOM_IN_BTN_NAME = 'zoomIn';
@@ -24,16 +15,6 @@ const EDIT_TEXT_BTN_NAME = 'edit';
 const CLEAR_BTN_NAME = 'clear';
 const DRAW_CONFIG_OVERVIEW = 'drawConfig-overviewConfig';
 const DOWNLOAD_BTN_NAME = 'download';
-// const READ_FILE = 'readFile';
-const preWork = () => {
-    // 这里协助演示的代码，在实际项目中根据实际情况进行调整
-    const container = document.getElementById('container')!;
-    const graphContainer = document.createElement('div');
-    graphContainer.id = GRAPH_NAME;
-    container.appendChild(graphContainer);
-
-    insertCss(cssConfig);
-}
 
 const START_POS_X = 100;
 const START_POS_Y = 100;
@@ -52,7 +33,7 @@ const emptyPage = {
     nodes: []
 }
 
-export default class CodeControl {
+export default class X6FC {
     public graph: any;
     public nodesArray: any = {};
     public originConfigs: any = {};
@@ -63,22 +44,32 @@ export default class CodeControl {
     public canEditText: boolean = false;
     public tipDialog: any;
 
-    constructor() {
-        preWork();                          // 設定css樣式
+    constructor(canvasId: string) {
+
+        this.initContainer(canvasId)
         this.initConfigs([                  // 初始化config檔
             overviewConfig,
-            roomGameBeforeConfig,
-            overviewConfig_n
+            roomGameBeforeConfig
         ]);
         this.initGraph();                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
-        this.drawFromConfig(overviewConfig);
     }
 
+    private initContainer(canvasId: string) {
+        if (!canvasId) return;
+        const container = document.getElementById(canvasId)!;
+        const graphContainer = document.createElement('div');
+        graphContainer.id = GRAPH_NAME;
+        container.appendChild(graphContainer);
+
+        insertCss(cssConfig);
+    }
+
+
     public drawFromConfig(config: any) {
-        if (this.graph.getCellCount() > 0) this.graph.clearCells();
+        if(this.graph.getCellCount() > 0) this.graph.clearCells();
         this.nowPage = config;
 
         const nodes = config.nodes;
@@ -601,8 +592,8 @@ export default class CodeControl {
         });
 
         let drawConfig_overviewBtn = document.getElementById(DRAW_CONFIG_OVERVIEW);
-        if (drawConfig_overviewBtn) drawConfig_overviewBtn.addEventListener('click', () => {
-            if (overviewConfig) this.drawFromConfig(overviewConfig);
+        if(drawConfig_overviewBtn) drawConfig_overviewBtn.addEventListener('click', () => {
+            if(overviewConfig) this.drawFromConfig(overviewConfig);
         });
 
         let downloadBtn = document.getElementById(DOWNLOAD_BTN_NAME);
@@ -968,8 +959,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                // imageUrl: ImageKey.POPUP_REMAINING,
-                imageUrl: popupRemaining.src ? popupRemaining.src : ImageKey.POPUP_REMAINING,
+                imageUrl: ImageKey.POPUP_REMAINING,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -992,8 +982,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                // imageUrl: ImageKey.POPUP_RETURN_GAME,
-                imageUrl: popupReturnGame.src ? popupReturnGame.src : ImageKey.POPUP_RETURN_GAME,
+                imageUrl: ImageKey.POPUP_RETURN_GAME,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -1016,8 +1005,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                // imageUrl: ImageKey.POPUP_CONNECT_FAILED,
-                imageUrl: popupConnectFailed.src ? popupConnectFailed.src : ImageKey.POPUP_CONNECT_FAILED,
+                imageUrl: ImageKey.POPUP_CONNECT_FAILED,
                 attrs: {
                     body: {
                         strokeWidth: 0,

@@ -1,5 +1,5 @@
 {
-    "name": "X6Test",
+    "name": "X6FlowChart",
     "version": "1.0.0",
     "description": "",
     "private": true,
@@ -9,7 +9,8 @@
         "dev": "webpack serve --progress --mode development",
         "build:prod": "webpack --progress --mode production --watch",
         "build:dev": "webpack --progress --mode development --watch",
-        "server": "node server.js"
+        "server": "node server.js",
+        "rollup": "rollup -c"
     },
     "keywords": [],
     "author": "",
@@ -29,6 +30,15 @@
         "gsap": "^3.9.1",
         "html-webpack-plugin": "^5.5.0",
         "lodash": "^4.17.21",
+        "rollup": "^2.70.1",
+        "rollup-plugin-commonjs": "^10.1.0",
+        "rollup-plugin-filesize": "^9.1.2",
+        "rollup-plugin-image": "^1.0.2",
+        "rollup-plugin-inject-process-env": "^1.3.1",
+        "rollup-plugin-json": "^4.0.0",
+        "rollup-plugin-node-resolve": "^5.2.0",
+        "rollup-plugin-typescript2": "^0.31.2",
+        "rollup-plugin-uglify": "^6.0.4",
         "style-loader": "^3.3.1",
         "ts-loader": "^9.2.6",
         "ts-node": "^10.4.0",
