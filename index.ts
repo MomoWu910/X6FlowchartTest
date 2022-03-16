@@ -1,9 +1,12 @@
 // import Demo from './src/demo';
-import CodeControl from './src/codeControl';
 import ChartTest from './src/chartTest';
-import X6FC from './src/x6FlowChart';
+import FlowChart from './src/x6FlowChart';
 
 // new Demo();
 // new CodeControl();
-// new ChartTest();
-// let x6fc = new X6FC('container');
+new ChartTest();
+
+// ex
+// let x6fc = new FlowChart('container', { width: 500, height: 500, theme: 'white', isGrid: false });
+
+let x6fc = new FlowChart('container');

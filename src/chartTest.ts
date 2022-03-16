@@ -1,20 +1,22 @@
 import { Chart } from '@antv/g2';
 
+const SHOW_CHART_BTN_NAME = 'showChart';
+
 const otherRatio = 6.67 / 100; // Other 的占比
 const otherOffsetAngle = otherRatio * Math.PI; // other 占的角度的一半
 const data = [
-    { type: '微博', value: 93.33 },
-    { type: '其他', value: 6.67 },
+    { type: '成功', value: 93.33 },
+    { type: '失敗', value: 6.67 },
 ];
 const other = [
-    { type: '论坛', value: 1.77 },
-    { type: '网站', value: 1.44 },
-    { type: '微信', value: 1.12 },
-    { type: '客户端', value: 1.05 },
-    { type: '新闻', value: 0.81 },
-    { type: '视频', value: 0.39 },
-    { type: '博客', value: 0.37 },
-    { type: '报刊', value: 0.17 },
+    { type: 'google chrome', value: 1.77 },
+    { type: 'ios safari', value: 1.44 },
+    { type: 'browser1', value: 1.12 },
+    { type: 'browser2', value: 1.05 },
+    { type: 'browser3', value: 0.81 },
+    { type: 'browser4', value: 0.39 },
+    { type: 'browser5', value: 0.37 },
+    { type: 'browser6', value: 0.17 },
 ];
 
 export default class ChartTest {
@@ -26,14 +28,43 @@ export default class ChartTest {
 
         this.initChart();
         this.initView();
+        this.initEvent();
 
         this.chart.render();
-        this.drawLinkArea();
+        // this.drawLinkArea();
         this.chart.on('afterpaint', () => {
-            this.drawLinkArea();
+            // this.drawLinkArea();
         });
+        this.chart.forceFit();
+        this.showChart();
     }
 
+    // region 功能相關
+    public showChart() {
+        if (this.chart.visible) {
+            this.chart.changeVisible(false);
+            this.chart.clear();
+
+            let chartContainer = document.getElementById('chartContainer');
+            if (chartContainer) chartContainer.style.visibility = "hidden";
+        } else {
+
+            // 好像要清掉重畫才能有文字，待觀察
+            this.initChart();
+            this.initView();
+            this.chart.changeVisible(true);
+
+            this.chart.render();
+            // this.drawLinkArea();
+
+            let chartContainer = document.getElementById('chartContainer');
+            if (chartContainer) chartContainer.style.visibility = "visible";
+        }
+
+    }
+    // endregion
+
+    // region 初始化相關
     public initChart() {
         this.chart = new Chart({
             container: 'chartContainer',
@@ -60,8 +91,8 @@ export default class ChartTest {
         });
         this.view1.coordinate('theta', {
             radius: 0.7,
-            startAngle: 0 + otherOffsetAngle,
-            endAngle: Math.PI * 2 + otherOffsetAngle,
+            // startAngle: 0 + otherOffsetAngle,
+            // endAngle: Math.PI * 2 + otherOffsetAngle,
         });
         this.view1.data(data);
         this.view1.interaction('element-highlight');
@@ -79,35 +110,43 @@ export default class ChartTest {
                 };
             });
 
-        this.view2 = this.chart.createView({
-            region: {
-                start: {
-                    x: 0.5,
-                    y: 0.1,
-                },
-                end: {
-                    x: 1,
-                    y: 0.9,
-                },
-            },
-        });
-        this.view2.axis(false);
-        this.view2.data(other);
-        this.view2.interaction('element-highlight');
-        this.view2
-            .interval()
-            .adjust('stack')
-            .position('value')
-            .color('type', ['#063d8a', '#0b53b0', '#1770d6', '#2593fc', '#47abfc', '#6dc1fc', '#94d6fd', '#bbe7fe'])
-            .label('value', {
-                position: 'right',
-                offsetX: 5,
-                offsetY: 10,
-                content: (obj) => {
-                    return obj.type + ' ' + obj.value + '%';
-                },
-            });
+        // this.view2 = this.chart.createView({
+        //     region: {
+        //         start: {
+        //             x: 0.5,
+        //             y: 0.1,
+        //         },
+        //         end: {
+        //             x: 1,
+        //             y: 0.9,
+        //         },
+        //     },
+        // });
+        // this.view2.axis(false);
+        // this.view2.data(other);
+        // this.view2.interaction('element-highlight');
+        // this.view2
+        //     .interval()
+        //     .adjust('stack')
+        //     .position('value')
+        //     .color('type', ['#063d8a', '#0b53b0', '#1770d6', '#2593fc', '#47abfc', '#6dc1fc', '#94d6fd', '#bbe7fe'])
+        //     .label('value', {
+        //         position: 'right',
+        //         offsetX: 5,
+        //         offsetY: 10,
+        //         content: (obj) => {
+        //             return obj.type + ' ' + obj.value + '%';
+        //         },
+        //     });
     }
+
+    public initEvent() {
+        let showChartBtn = document.getElementById(SHOW_CHART_BTN_NAME);
+        if (showChartBtn) showChartBtn.addEventListener('click', () => { this.showChart(); });
+    }
+    // endregion
+
+    // region 繪圖相關
     /* ---------绘制连接区间-----------*/
     public drawLinkArea() {
         const canvas = this.chart.getCanvas();
@@ -151,5 +190,6 @@ export default class ChartTest {
         });
         canvas.draw();
     }
+    //endregion
 
 }

@@ -16,7 +16,7 @@ import injectProcessEnv from 'rollup-plugin-inject-process-env';
 
 
 const config = {
-    input: 'index.ts', // 打包檔案的入口文件
+    input: 'indexForRollup.ts', // 打包檔案的入口文件
     output: [ // 整個output是以 Array<Object>的形式存在，可以一次輸出多種檔案
         // {
         //     file: 'dist/rollupBundle.amd.js', // 檔案輸出的路徑
@@ -42,7 +42,7 @@ const config = {
         {
             file: 'dist/rollupBundle.umd.js',
             format: 'umd',
-            name: 'umdBundle',
+            name: 'H5FC',
         }
     ],
     // plugins 看個人需求決定使用與否
@@ -65,11 +65,11 @@ const config = {
     // 以下為解決 (!) `this` has been rewritten to `undefined`
     onwarn: function (warning) {
         if (warning.code === 'THIS_IS_UNDEFINED') {
-			return;
-		}
-		console.error(warning.message);
-	},
+            return;
+        }
+        console.error(warning.message);
+    },
 }
-  
+
 
 export default config;
