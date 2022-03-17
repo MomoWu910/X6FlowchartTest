@@ -1,33 +1,26 @@
 import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
-import { gsap } from "gsap";
-import { overviewConfig } from './flowChartConfigs/overviewConfig';
-import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
-import { overviewConfig_n } from './flowChartConfigs/overviewConfig_n';
 import { ImageKey } from './constants/assets';
 import _ from 'lodash';
 
-/* html css 相關樣式建立
-*   graphContainer: 畫板
-*/
+import { overviewConfig } from './flowChartConfigs/overviewConfig';
+import { roomGameBeforeConfig } from './flowChartConfigs/roomGameBeforeConfig';
+
+import popupRemaining from '../res/nodeAssets/popupRemaining.png';
+import popupReturnGame from '../res/nodeAssets/popupReturnGame.png';
+import popupConnectFailed from '../res/nodeAssets/popupConnectFailed.png';
+import { gsap } from 'gsap';
+
 const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
 const ZOOM_IN_BTN_NAME = 'zoomIn';
 const ZOOM_OUT_BTN_NAME = 'zoomOut';
 const EDIT_TEXT_BTN_NAME = 'edit';
 const CLEAR_BTN_NAME = 'clear';
+const DRAW_CONFIG_OVERVIEW = 'drawConfig-overviewConfig';
 const DOWNLOAD_BTN_NAME = 'download';
-// const READ_FILE = 'readFile';
-const preWork = () => {
-    // 这里协助演示的代码，在实际项目中根据实际情况进行调整
-    const container = document.getElementById('container')!;
-    const graphContainer = document.createElement('div');
-    graphContainer.id = GRAPH_NAME;
-    container.appendChild(graphContainer);
-
-    insertCss(cssConfig);
-}
+const TOGGLE_GRID_BTN_NAME = 'toggleGrid';
 
 const START_POS_X = 100;
 const START_POS_Y = 100;
@@ -46,7 +39,7 @@ const emptyPage = {
     nodes: []
 }
 
-export default class CodeControl {
+export default class FlowChart {
     public graph: any;
     public nodesArray: any = {};
     public originConfigs: any = {};
@@ -56,22 +49,35 @@ export default class CodeControl {
     public prePages: any = {};
     public canEditText: boolean = false;
     public tipDialog: any;
+    public theme: string = 'dark';
 
-    constructor() {
-        preWork();                          // 設定css樣式
+    /**
+     * @param canvasId (string) 用於套入canvas的<div>的id
+     * @param option (obj, optional) 可調整參數
+     * {
+     *      @param width (number) 畫布寬，默認容器寬
+     *      @param height (number) 畫布高，默認容器高
+     *      @param theme (string) 主題，默認 'dark'暗色主題，可以代入 'light'改為亮色主題
+     *      @param isGrid (boolean) 是否需要格線，預設開啟
+     * }
+     */
+    constructor(canvasId: string, option: any = {}) {
+
+        this.initContainer(canvasId)
         this.initConfigs([                  // 初始化config檔
             overviewConfig,
-            roomGameBeforeConfig,
-            overviewConfig_n
+            roomGameBeforeConfig
         ]);
-        this.initGraph();                   // 初始化畫布
+        this.initGraph(option);                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
 
-        this.drawFromConfig(overviewConfig);
     }
 
+
+
     public drawFromConfig(config: any) {
+        if(this.graph.getCellCount() > 0) this.graph.clearCells();
         this.nowPage = config;
 
         const nodes = config.nodes;
@@ -170,7 +176,7 @@ export default class CodeControl {
                     seat: "${node.data.seat}",
                     name: "${node.data.name}",
                     changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
-                    size: ${node.data.size ? JSON.stringify(node.data.size) : null}
+                    size: ${node.data.size ? JSON.stringify(node.data.size) : null},
                     tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
                 },
                 shape: "${node.shape}",
@@ -273,7 +279,7 @@ export default class CodeControl {
     }
     // #endregion
 
-    // #region 左側按鈕功能
+    // #region 功能相關
     // 返回上一張流程圖
     public backToPrePage() {
         const nowLevel = this.nowPage.level;
@@ -299,6 +305,16 @@ export default class CodeControl {
     // zoom out
     public zoomOut() {
         this.graph.zoom(-0.1);
+    }
+
+    // 隱藏隔線
+    public hideGrid() {
+        this.graph.hideGrid();
+    }
+
+    // 顯示隔線
+    public showGrid() {
+        this.graph.showGrid();
     }
     // #endregion
 
@@ -417,6 +433,13 @@ export default class CodeControl {
             };
         }
     }
+
+    // 清除畫布
+    public clearGraph() {
+        this.graph.clearCells();
+        this.prePages[this.nowPage.level] = this.nowPage.name;
+        this.nowPage = emptyPage;
+    }
     // #endregion
 
     // #region 動畫相關
@@ -463,42 +486,56 @@ export default class CodeControl {
     // #endregion
 
     // #region 初始化相關
+    // 初始化容器
+    private initContainer(canvasId: string) {
+        if (!canvasId) return;
+        const container = document.getElementById(canvasId)!;
+        const graphContainer = document.createElement('div');
+        graphContainer.id = GRAPH_NAME;
+        container.appendChild(graphContainer);
+
+        insertCss(cssConfig);
+    }
+
     // 初始化画布
-    public initGraph() {
+    public initGraph(option: any = {}) {
+        this.theme = (option && option.theme) ? option.theme : 'dark';
+        const isGrid = (option && option.isGrid !== undefined) ? option.isGrid : true;
+
         const graph = new Graph({
-            container: document.getElementById(GRAPH_NAME)!, // 画布的容器
-            background: { color: '#2A2A2A' },                       // 背景
-            grid: {                                                 // 网格
-                type: 'doubleMesh',                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
-                visible: true,
-                args: [                                             // doubleMesh 才要分主次
+            container: document.getElementById(GRAPH_NAME)!,                        // 画布的容器
+            background: { color: this.theme === 'dark' ? '#2A2A2A' : '#ffffff' },   // 背景
+            grid: {                                                                 // 网格
+                type: 'doubleMesh',                                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
+                visible: isGrid,
+                args: [                                                             // doubleMesh 才要分主次
                     {
-                        color: '#6e6e6e',                           // 主网格线颜色
-                        thickness: 1,                               // 主网格线宽度
+                        color: this.theme === 'dark' ? '#6e6e6e' : '#aaaaaa',       // 主网格线颜色
+                        thickness: 1,                                               // 主网格线宽度
                     },
                     {
-                        color: '#6e6e6e',                           // 次网格线颜色
-                        thickness: 1,                               // 次网格线宽度
-                        factor: 4,                                  // 主次网格线间隔
+                        color: this.theme === 'dark' ? '#6e6e6e' : '#aaaaaa',       // 次网格线颜色
+                        thickness: 1,                                               // 次网格线宽度
+                        factor: 4,                                                  // 主次网格线间隔
                     },
                 ],
             },
-            mousewheel: {                                           // 鼠标滚轮缩放
+            mousewheel: {                                                           // 鼠标滚轮缩放
                 enabled: true,
-                zoomAtMousePosition: true,                          // 是否将鼠标位置作为中心缩放
-                modifiers: 'ctrl',                                  // 需要按下修饰键并滚动鼠标滚轮时才触发画布缩放
+                zoomAtMousePosition: true,                                          // 是否将鼠标位置作为中心缩放
+                modifiers: 'ctrl',                                                  // 需要按下修饰键并滚动鼠标滚轮时才触发画布缩放
             },
-            connecting: {                                           // 连线规则
-                router: {                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
-                    name: 'normal',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
+            connecting: {                                                           // 连线规则
+                router: {                                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
+                    name: 'normal',                                                 // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
                 },
-                connector: {                                        // 连接器
-                    name: 'normal',                                // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
+                connector: {                                                        // 连接器
+                    name: 'normal',                                                 // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
                 },
-                anchor: 'center',                                   // 当连接到节点时，通过 anchor 来指定被连接的节点的锚点
-                connectionPoint: 'anchor',                          // 指定连接点
-                allowBlank: false,                                  // 是否允许连接到画布空白位置的点
-                snap: {                                             // 连线的过程中距离节点或者连接桩radius时会触发自动吸附
+                anchor: 'center',                                                   // 当连接到节点时，通过 anchor 来指定被连接的节点的锚点
+                connectionPoint: 'anchor',                                          // 指定连接点
+                allowBlank: false,                                                  // 是否允许连接到画布空白位置的点
+                snap: {                                                             // 连线的过程中距离节点或者连接桩radius时会触发自动吸附
                     radius: 20,
                 },
                 validateConnection({ targetMagnet }) {              // 在移动边的时候判断连接是否有效，如果返回 false，当鼠标放开的时候，不会连接到当前元素，否则会连接到当前元素。
@@ -534,6 +571,8 @@ export default class CodeControl {
         });
 
         this.graph = graph;
+
+        if(option && option.width) this.graph.resize(option.width, option.height);
     }
 
     // 快捷键与事件
@@ -544,16 +583,26 @@ export default class CodeControl {
 
         this.graph.on('node:mouseenter', ({ cell }) => {
             // console.log(cell)
-            const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
-            const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
-            const attr = {
-                label: cell.data.tipContent ? cell.data.tipContent : 'test'
-            };
-            this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+            if (this.tipDialog) {
+                this.graph.removeNode(this.tipDialog);
+                this.tipDialog = null;
+            }
+            if (cell.data) {
+                const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
+                const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
+                const attr = {
+                    label: cell.data.tipContent ? cell.data.tipContent : 'test',
+                    fontSize: 15,
+                };
+                this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+            }
         })
 
         this.graph.on('node:mouseleave', ({ cell }) => {
-            this.graph.removeNode(this.tipDialog);
+            if (this.tipDialog) {
+                this.graph.removeNode(this.tipDialog);
+                this.tipDialog = null;
+            }
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {
@@ -577,10 +626,11 @@ export default class CodeControl {
         if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
 
         let clearBtn = document.getElementById(CLEAR_BTN_NAME);
-        if (clearBtn) clearBtn.addEventListener('click', () => {
-            this.graph.clearCells();
-            this.prePages[this.nowPage.level] = this.nowPage.name;
-            this.nowPage = emptyPage;
+        if (clearBtn) clearBtn.addEventListener('click', () => { this.clearGraph(); });
+
+        let drawConfig_overviewBtn = document.getElementById(DRAW_CONFIG_OVERVIEW);
+        if(drawConfig_overviewBtn) drawConfig_overviewBtn.addEventListener('click', () => {
+            if(overviewConfig) this.drawFromConfig(overviewConfig);
         });
 
         let downloadBtn = document.getElementById(DOWNLOAD_BTN_NAME);
@@ -595,6 +645,14 @@ export default class CodeControl {
                 this.download(this.nowPage.name + '.ts', downConfig);
             });
         }
+
+        let toggleGridBtn = document.getElementById(TOGGLE_GRID_BTN_NAME);
+        if (toggleGridBtn) toggleGridBtn.addEventListener('click', () => { 
+            if(this.graph.grid.grid) {
+                if(this.graph.grid.grid.visible) this.hideGrid(); 
+                else this.showGrid();
+            }
+        });
 
         let editTextBtn = document.getElementById(EDIT_TEXT_BTN_NAME);
         if (editTextBtn) {
@@ -946,7 +1004,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                imageUrl: ImageKey.POPUP_REMAINING,
+                imageUrl: popupRemaining.src ? popupRemaining.src : ImageKey.POPUP_REMAINING,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -969,7 +1027,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                imageUrl: ImageKey.POPUP_RETURN_GAME,
+                imageUrl: popupReturnGame.src ? popupReturnGame.src : ImageKey.POPUP_RETURN_GAME,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -992,7 +1050,7 @@ export default class CodeControl {
                 inherit: 'image',
                 width: DEFAULT_RECT_WIDTH,
                 height: DEFAULT_RECT_HEIGHT,
-                imageUrl: ImageKey.POPUP_CONNECT_FAILED,
+                imageUrl: popupConnectFailed.src ? popupConnectFailed.src : ImageKey.POPUP_CONNECT_FAILED,
                 attrs: {
                     body: {
                         strokeWidth: 0,
@@ -1008,7 +1066,7 @@ export default class CodeControl {
             true,
         );
 
-        // 一般白線
+        // 一般線
         Graph.registerEdge(
             registerName.normalEdge,
             {
@@ -1018,7 +1076,7 @@ export default class CodeControl {
                 },
                 attrs: {
                     line: {
-                        stroke: '#ffffff',
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
                         strokeWidth: 2,
                         targetMarker: {
                             name: 'block',
@@ -1031,7 +1089,7 @@ export default class CodeControl {
             }
         );
 
-        // 轉一次彎L型白線
+        // 轉一次彎L型線
         Graph.registerEdge(
             registerName.lEdge,
             {
@@ -1041,7 +1099,7 @@ export default class CodeControl {
                 },
                 attrs: {
                     line: {
-                        stroke: '#ffffff',
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
                         strokeWidth: 2,
                         targetMarker: {
                             name: 'block',
