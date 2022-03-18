@@ -91,8 +91,8 @@ export default class ChartTest {
         });
         this.view1.coordinate('theta', {
             radius: 0.7,
-            // startAngle: 0 + otherOffsetAngle,
-            // endAngle: Math.PI * 2 + otherOffsetAngle,
+            startAngle: 0 + otherOffsetAngle,
+            endAngle: Math.PI * 2 + otherOffsetAngle,
         });
         this.view1.data(data);
         this.view1.interaction('element-highlight');
@@ -101,6 +101,39 @@ export default class ChartTest {
             .adjust('stack')
             .position('value')
             .color('type', ['#38c060', '#2593fc'])
+            .label('value', function () {
+                return {
+                    offset: -10,
+                    content: (obj) => {
+                        return obj.type + '\n' + obj.value + '%';
+                    },
+                };
+            });
+
+        this.view2 = this.chart.createView({
+            region: {
+                start: {
+                    x: 0.5,
+                    y: 0,
+                },
+                end: {
+                    x: 1,
+                    y: 1,
+                },
+            },
+        });
+        this.view2.coordinate('theta', {
+            radius: 0.7,
+            startAngle: 0 + otherOffsetAngle,
+            endAngle: Math.PI * 2 + otherOffsetAngle,
+        });
+        this.view2.data(other);
+        this.view2.interaction('element-highlight');
+        this.view2
+            .interval()
+            .adjust('stack')
+            .position('value')
+            .color('type', ['#063d8a', '#0b53b0', '#1770d6', '#2593fc', '#47abfc', '#6dc1fc', '#94d6fd', '#bbe7fe'])
             .label('value', function () {
                 return {
                     offset: -10,
@@ -154,6 +187,12 @@ export default class ChartTest {
         const view1_coord = this.view1.getCoordinate();
         const center = view1_coord.getCenter();
         const radius = view1_coord.getRadius();
+
+
+        // const view2_coord = this.view2.getCoordinate();
+        // const center2 = view2_coord.getCenter();
+        // const radius2 = view2_coord.getRadius();
+
         const interval_geom = this.view2.geometries[0];
         const interval_container = interval_geom.container;
         const interval_bbox = interval_container.getBBox();
@@ -168,13 +207,21 @@ export default class ChartTest {
             y: center.y + Math.sin(otherOffsetAngle) * radius,
         };
         const interval_end1 = {
-            x: interval_bbox.minX,
+            x: (view2_coord.end.x + view2_coord.start.x) / 2,
             y: view2_coord.end.y,
         };
         const interval_end2 = {
-            x: interval_bbox.minX,
+            x: (view2_coord.end.x + view2_coord.start.x) / 2,
             y: view2_coord.start.y,
         };
+        // const interval_end1 = {
+        //     x: interval_bbox.minX,
+        //     y: view2_coord.end.y,
+        // };
+        // const interval_end2 = {
+        //     x: interval_bbox.minX,
+        //     y: view2_coord.start.y,
+        // };
         const path = [
             ['M', pie_start1.x, pie_start1.y],
             ['L', pie_start2.x, pie_start2.y],
