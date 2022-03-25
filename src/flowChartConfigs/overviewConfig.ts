@@ -1,4 +1,4 @@
-import { registerName } from '../constants/config';
+import { registerName } from '../constants';
 
 const DEFAULT_POPUP_WIDTH = 150;
 const DEFAULT_POPUP_HEIGHT = 90;

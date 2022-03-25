@@ -1,6 +1,6 @@
 import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
-import { cssConfig, colorConfig, zIndex, registerName } from './constants/config';
+import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
 import { ImageKey } from './constants/assets';
 import _ from 'lodash';
 
@@ -25,13 +25,13 @@ const TOGGLE_GRID_BTN_NAME = 'toggleGrid';
 const START_POS_X = 100;
 const START_POS_Y = 100;
 const EDGE_LENGTH_V = 140;
-const EDGE_LENGTH_H = 200;
+const EDGE_LENGTH_H = 240;
 
-const TIP_DIALOG_ADJUST_X = 90;
-const TIP_DIALOG_ADJUST_Y = 90;
+const TIP_DIALOG_ADJUST_X = 130;
+const TIP_DIALOG_ADJUST_Y = 140;
 
-const DEFAULT_RECT_WIDTH = 120;
-const DEFAULT_RECT_HEIGHT = 60;
+const DEFAULT_RECT_WIDTH = 160;
+const DEFAULT_RECT_HEIGHT = 80;
 const DEFAULT_FONTSIZE = 12;
 
 const emptyPage = {
@@ -74,10 +74,9 @@ export default class FlowChart {
 
     }
 
-
-
+    // #region config畫圖相關
     public drawFromConfig(config: any) {
-        if(this.graph.getCellCount() > 0) this.graph.clearCells();
+        if (this.graph.getCellCount() > 0) this.graph.clearCells();
         this.nowPage = config;
 
         const nodes = config.nodes;
@@ -164,6 +163,7 @@ export default class FlowChart {
 
         this.drawFromConfig(this.editedConfigs[configName]);
     }
+    // #endregion
 
     // #region JSON相關
     // 當前畫布所有節點轉成config格式，並回傳
@@ -171,10 +171,13 @@ export default class FlowChart {
         let nodesJSON: any[] = [];
         nodes.map((node) => {
             let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
+            let posX = node.position().x;
+            let posY = node.position().y;
             let json = `{
                 data: {
-                    seat: "${node.data.seat}",
-                    name: "${node.data.name}",
+                    seat: "${node.data.seat ? node.data.seat : ''}",
+                    position: "{ x: ${posX}, y: ${posY} }",
+                    name: "${node.data.name ? node.data.name : ''}",
                     changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
                     size: ${node.data.size ? JSON.stringify(node.data.size) : null},
                     tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
@@ -328,6 +331,11 @@ export default class FlowChart {
      * @param attr X6相關參數
      * {
      *      @param label (string)(optional) 文字, 需注意換行要加 \n
+     *      @param portLabel (object)(optional) 周圍的文字
+     *      {
+     *          @param portId (string) 要顯示在哪個角，有九個角，ex.'left'左中, 'left_top'左上, 'right_bottom'右下
+     *          @param label (string) 文字
+     *      }
      *      ...其他功能後續補充
      * }
      * @param data X6以外自定義參數
@@ -341,36 +349,63 @@ export default class FlowChart {
      * }
      */
     public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
+
+        let newPort = {};
+        if (attr && attr.portLabel) {
+            newPort = this.getPortLabelsetting(attr.portLabel);
+            // console.warn(newPort, attr, attr.portLabel);
+        }
+
         const node = this.graph.addNode({
             x: posX,
             y: posY,
             shape: shape,
+            ports: newPort,
             attrs: {
                 label: {
                     fontSize: DEFAULT_FONTSIZE,
                 }
             },
             data: {
-                name: data.name,
+                name: data.name ? data.name : '',
                 changeToFlowChart: ''
             }
         });
 
-        if (attr && attr.label) node.label = attr.label;
-        if (attr && attr.fontSize) node.attr('label/fontSize', attr.fontSize);
+        // if (data && data.size) {
+        //     node.resize(data.size.w, data.size.h);
+
+        //     // 這一段讓節點置中
+        //     const adjustX = data.size.w > DEFAULT_RECT_WIDTH ? -(data.size.w - DEFAULT_RECT_WIDTH) / 2 : (data.size.w - DEFAULT_RECT_WIDTH) / 2;
+        //     const adjustY = data.size.h > DEFAULT_RECT_HEIGHT ? -(data.size.h - DEFAULT_RECT_HEIGHT) / 2 : (data.size.h - DEFAULT_RECT_HEIGHT) / 2;
+        //     node.position(posX + adjustX, posY + adjustY);
+
+        //     node.data.size = data.size;
+        // }
+
+        let fontSize = attr.fontSize ? attr.fontSize : DEFAULT_FONTSIZE;
+        if (attr && attr.label) {
+            const check = this.checkLabel(node.size().width, attr.label, fontSize);
+
+            node.label = check.newLabel;
+            fontSize = check.newFontSize;
+            node.resize(check.newSize, node.size().height);
+            node.data.size = { w: check.newSize, h: node.size().height };
+
+            // 這一段讓節點置中
+            const adjustX = check.newSize > DEFAULT_RECT_WIDTH ? -(check.newSize - DEFAULT_RECT_WIDTH) / 2 : (check.newSize - DEFAULT_RECT_WIDTH) / 2;
+            const adjustY = node.size().height > DEFAULT_RECT_HEIGHT ? -(node.size().height - DEFAULT_RECT_HEIGHT) / 2 : (node.size().height - DEFAULT_RECT_HEIGHT) / 2;
+            node.position(posX + adjustX, posY + adjustY);
+        }
+        node.attr('label/fontSize', fontSize);
+
         if (shape === registerName.changeToOtherFlowChart) {
             node.data.changeToFlowChart = data.changeToFlowChart;
-        }
-        if (data && data.size) {
-            node.resize(data.size.w, data.size.h);
-            const adjustX = data.size.w > DEFAULT_RECT_WIDTH ? -(data.size.w - DEFAULT_RECT_WIDTH) / 2 : (data.size.w - DEFAULT_RECT_WIDTH) / 2;
-            const adjustY = data.size.h > DEFAULT_RECT_HEIGHT ? -(data.size.h - DEFAULT_RECT_HEIGHT) / 2 : (data.size.h - DEFAULT_RECT_HEIGHT) / 2;
-            node.position(posX + adjustX, posY + adjustY);
-            node.data.size = data.size;
         }
         if (data && data.seat) node.data.seat = data.seat;
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
 
+        // console.warn();
         return node;
     }
 
@@ -379,7 +414,7 @@ export default class FlowChart {
      * 
      * @param source 從哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
      * @param target 到哪個座標{x, y}或節點{cell}或指定節點的連接點{cell, port}
-     * @param direction 方向，流程圖大部分不是上到下(v)就是左到右(h)，預設上到下
+     * @param direction 方向，水平H 或 垂直V 或 L型(需要給定port)
      * @param shape 哪種類型的邊，預設白色直線單箭頭
      * @param data 自定義參數
      * {
@@ -393,12 +428,18 @@ export default class FlowChart {
     public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, data: any = {}) {
         let sourceCheck, targetCheck;
         if (direction === 'v' || direction === 'V') {
-            sourceCheck = { cell: source, port: 'bottom' };
-            targetCheck = { cell: target, port: 'top' };
+            // 檢查方向，source在上方那就從 bottom->top，在下方就 top->bottom
+            // 下方的y比較大
+            let checkV = (source.position().y - target.position().y) < 0;
+            sourceCheck = { cell: source, port: checkV ? 'bottom' : 'top' };
+            targetCheck = { cell: target, port: checkV ? 'top' : 'bottom' };
         }
         if (direction === 'h' || direction === 'H') {
-            sourceCheck = { cell: source, port: 'right' };
-            targetCheck = { cell: target, port: 'left' };
+            // 檢查方向，source在左方那就從 right->left，在右方就 left->right
+            // 右方的x比較大
+            let checkH = (source.position().x - target.position().x) < 0;
+            sourceCheck = { cell: source, port: checkH ? 'right' : 'left' };
+            targetCheck = { cell: target, port: checkH ? 'left' : 'right' };
         }
         if (direction === 'l' || direction === 'L') {
             sourceCheck = { cell: source.source, port: source.port };
@@ -417,8 +458,8 @@ export default class FlowChart {
             },
             data: {
                 direction: direction,
-                sourceSeat: data.sourceSeat,
-                targetSeat: data.targetSeat,
+                sourceSeat: data.sourceSeat ? data.sourceSeat : '',
+                targetSeat: data.targetSeat ? data.targetSeat : '',
                 sourcePort: data.sourcePort ? data.sourcePort : '',
                 targetPort: data.targetPort ? data.targetPort : '',
             }
@@ -432,6 +473,95 @@ export default class FlowChart {
                 label: data.label
             };
         }
+    }
+
+    // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
+    public checkLabel(nodeSize: number, label: string, fontSize: number = 12) {
+        let newSize = nodeSize;
+        let newFontSize = fontSize;
+        let newLabel = label;
+        let if_ = label.includes('_');
+        let split = label.split('');
+
+        // 如果太長超過節點就縮小字體大小
+        for (let size = fontSize; size < 12; size--) {
+            if (split.length * size < nodeSize) {
+                newFontSize = size;
+                break;
+            }
+        }
+
+        // 如果小到小於12還不夠就幫他換行(判斷有無底線)
+        // if (split.length * newFontSize > nodeSize) {
+        //     if (if_) {
+        //         const re = /_/g
+        //         newLabel = label.replace(re, '_\n');
+        //     }
+        // }
+
+        // 幫它放大節點size，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
+        if (split.length * newFontSize > newSize) {
+            newSize = (split.length * 0.6) * newFontSize;
+        }
+
+        return { newSize: newSize, newLabel: newLabel, newFontSize: newFontSize }
+    }
+
+    // 節點周圍要顯示文字的話，要重寫port的設置
+    /**
+     * @param portLabel (Array) 要設定文字的ports陣列
+     * [
+     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
+     * ]
+     */
+    public getPortLabelsetting(portLabel: any = []) {
+        const groups = PORTS.groups;
+        let items = PORTS.items;
+        items.forEach((item, index) => {
+            const label = portLabel.find(e => e.portId === item.id);
+            if (label !== undefined) {
+                items[index] = {
+                    ...items[index],
+                    attrs: {
+                        text: {
+                            ...items[index].attrs.text,
+                            text: label.label,
+                            fill: label.fill ? label.fill : (this.theme === 'dark' ? '#FFF' : '#000'),
+                        },
+                    },
+                }
+            }
+        });
+
+        return { groups: groups, items: items }
+    }
+
+    // 改變節點port文字
+    /**
+     * @param cell 節點
+     * @param portLabel (Array) 要設定文字的ports陣列
+     * [
+     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
+     * ]
+     */
+    public setPortsLabel(cell: any = Node, portLabel: any = []) {
+        portLabel.forEach(item => {
+            cell.setPortProp(item.portId, ['attrs', 'text'], { text: item.label, fill: item.fill })
+        });
+    }
+
+    // 改變節點的文字、周圍文字
+    /**
+     * @param cell 節點
+     * @param label 該節點本身的文字
+     * @param portLabel (Array) 要設定文字的ports陣列
+     * [
+     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
+     * ]
+     */
+    public setNodeLabel(cell: any = Node, label: string = '', portLabel: any = []) {
+        if (cell.label) cell.label = label;
+        if (portLabel.length) this.setPortsLabel(cell, portLabel);
     }
 
     // 清除畫布
@@ -560,7 +690,7 @@ export default class FlowChart {
             resizing: false,                                         // 缩放节点
             rotating: false,                                        // 旋转节点
             panning: {                                              // 画布是否可以拖动
-                enabled: true,
+                enabled: false,
                 eventTypes: ['rightMouseDown']                      // 触发画布拖拽的行为
             },
             scroller: true,                                         // 滚动画布
@@ -568,11 +698,12 @@ export default class FlowChart {
             keyboard: true,                                         // 键盘快捷键
             clipboard: true,                                        // 剪切板
             history: true,                                          // 撤销/重做
+            autoResize: true
         });
 
         this.graph = graph;
 
-        if(option && option.width) this.graph.resize(option.width, option.height);
+        if (option && option.width) this.graph.resize(option.width, option.height);
     }
 
     // 快捷键与事件
@@ -582,19 +713,25 @@ export default class FlowChart {
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
-            // console.log(cell)
             if (this.tipDialog) {
                 this.graph.removeNode(this.tipDialog);
                 this.tipDialog = null;
             }
-            if (cell.data) {
-                const posX = cell.data.seat.split("_")[0] * EDGE_LENGTH_H + START_POS_X + TIP_DIALOG_ADJUST_X;
-                const posY = cell.data.seat.split("_")[1] * EDGE_LENGTH_V + START_POS_Y + TIP_DIALOG_ADJUST_Y;
+            if (cell) {
+                // console.log(cell.getAttrs());
+                const posX = cell.position().x + TIP_DIALOG_ADJUST_X;
+                const posY = cell.position().y + TIP_DIALOG_ADJUST_Y;
                 const attr = {
                     label: cell.data.tipContent ? cell.data.tipContent : 'test',
                     fontSize: 15,
                 };
                 this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
+                this.setNodeLabel(cell,
+                    'My Label',
+                    [
+                        { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+                        { portId: 'bottom_right', label: 'success', fill: 'green' },
+                    ]);
             }
         })
 
@@ -629,8 +766,8 @@ export default class FlowChart {
         if (clearBtn) clearBtn.addEventListener('click', () => { this.clearGraph(); });
 
         let drawConfig_overviewBtn = document.getElementById(DRAW_CONFIG_OVERVIEW);
-        if(drawConfig_overviewBtn) drawConfig_overviewBtn.addEventListener('click', () => {
-            if(overviewConfig) this.drawFromConfig(overviewConfig);
+        if (drawConfig_overviewBtn) drawConfig_overviewBtn.addEventListener('click', () => {
+            if (overviewConfig) this.drawFromConfig(overviewConfig);
         });
 
         let downloadBtn = document.getElementById(DOWNLOAD_BTN_NAME);
@@ -647,9 +784,9 @@ export default class FlowChart {
         }
 
         let toggleGridBtn = document.getElementById(TOGGLE_GRID_BTN_NAME);
-        if (toggleGridBtn) toggleGridBtn.addEventListener('click', () => { 
-            if(this.graph.grid.grid) {
-                if(this.graph.grid.grid.visible) this.hideGrid(); 
+        if (toggleGridBtn) toggleGridBtn.addEventListener('click', () => {
+            if (this.graph.grid.grid) {
+                if (this.graph.grid.grid.visible) this.hideGrid();
                 else this.showGrid();
             }
         });
@@ -679,120 +816,7 @@ export default class FlowChart {
         });
      */
     public initGraphNode() {
-        const ports = {
-            groups: {
-                top: {
-                    position: 'top',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-                right: {
-                    position: 'right',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-                bottom: {
-                    position: 'bottom',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-                left: {
-                    position: 'left',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-            },
-            items: [
-                {
-                    id: 'top_left',
-                    group: 'top',
-                },
-                {
-                    id: 'top',
-                    group: 'top',
-                },
-                {
-                    id: 'top_right',
-                    group: 'top',
-                },
-                {
-                    id: 'right_top',
-                    group: 'right',
-                },
-                {
-                    id: 'right',
-                    group: 'right',
-                },
-                {
-                    id: 'right_bottom',
-                    group: 'right',
-                },
-                {
-                    id: 'bottom_left',
-                    group: 'bottom',
-                },
-                {
-                    id: 'bottom',
-                    group: 'bottom',
-                },
-                {
-                    id: 'bottom_right',
-                    group: 'bottom',
-                },
-                {
-                    id: 'left_top',
-                    group: 'left',
-                },
-                {
-                    id: 'left',
-                    group: 'left',
-                },
-                {
-                    id: 'left_bottom',
-                    group: 'left',
-                },
-            ],
-        };
+
 
         // tip，圓角矩形，黑，白匡
         Graph.registerNode(
@@ -814,7 +838,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.TIP,
             },
             true,
@@ -840,7 +864,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -866,7 +890,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -892,7 +916,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -916,7 +940,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -941,7 +965,7 @@ export default class FlowChart {
                         fill: '#262626',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -966,7 +990,7 @@ export default class FlowChart {
                         fill: '#262626',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -991,7 +1015,7 @@ export default class FlowChart {
                         fill: '#262626',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -1014,7 +1038,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -1037,7 +1061,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,
@@ -1060,7 +1084,7 @@ export default class FlowChart {
                         fill: '#ffffff',
                     },
                 },
-                ports: { ...ports },
+                ports: { ...PORTS },
                 zIndex: zIndex.NODE,
             },
             true,

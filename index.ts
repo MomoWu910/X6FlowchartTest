@@ -7,15 +7,79 @@ import FlowChart from './src/x6FlowChart';
 new ChartTest();
 
 // ex
-// let x6fc = new FlowChart('container', { width: 500, height: 500, theme: 'white', isGrid: false });
+let x6fc = new FlowChart('container', { width: 1500, height: 1200, theme: 'dark', isGrid: false });
 
-let x6fc = new FlowChart('container');
+// let x6fc = new FlowChart('container');
 
+
+import { registerName } from './src/constants/config'
+let start_x = 0;
+let start_y = 0;
+let increase_x = 400;
+let increase_y = 200;
+let oneLineNum = 6;
+// 開始繪製node
+let nodeArray: any[] = [];
+for (let i = 0; i < 16; i++) {
+
+    let event_name = 'Btn_Base_PersonalNamePopup_ConfirmResult' + i;
+
+
+    // 計算出這個node的位置
+    let position = getDrawNodePosition(start_x, start_y, increase_x, increase_y, oneLineNum, i);
+
+    let node = x6fc.drawNode(position.x, position.y, registerName.process, {
+        label: event_name,
+        portLabel: [
+            { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+            { portId: 'bottom_right', label: 'not yet', fill: 'red' },
+        ]
+    });
+    nodeArray.push(node);
+
+}
+
+// 將裡面每個node加上箭頭線條
+for (let i = 0; i < nodeArray.length - 1; i++) {
+
+    let node1 = nodeArray[i];
+    let node2 = nodeArray[i + 1];
+
+    let direct = (i + 1) % oneLineNum == 0 ? 'v' : 'h';
+    x6fc.drawEdge(node1, node2, direct);
+}
+function getDrawNodePosition(start_x, start_y, diff_x, diff_y, maxRow, index) {
+
+    let position = { x: 0, y: 0 };
+
+    if (maxRow == 0)
+        return position;
+
+    // 先知道這個index是在第幾列
+    let column = Math.floor(index / maxRow);
+
+    // 算出這個index是第幾行
+    let row = Math.floor(index % maxRow);
+
+    // 如果是奇數列，要倒著算回來
+    if (Math.floor(column % 2) != 0) {
+
+        row = maxRow - row - 1;
+    }
+
+    //  行列都有了，可以算出位置了
+    position.x = start_x + row * diff_x;
+    position.y = start_y + column * diff_y;
+
+    return position;
+}
 
     // todo: 
-    // 1.節點換行的話，線要轉折
-    // label太長幫他縮小
-    // 2.node 四周放文字
-    // 3.定義port在config
-    // 3.dege分類在明確一點
+    // 1.節點換行的話，線要轉折Ｖ
+    // label太長幫他縮小Ｖ
+    // 2.node 四周放文字 V
+    // 3.定義port在config V
+    // 3.edge分類在明確一點
     // 畫布起始點、延伸問題
+
+    // 動態文本接口
