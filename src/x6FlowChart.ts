@@ -39,6 +39,8 @@ const emptyPage = {
     nodes: []
 }
 
+const TIP_TEXT_DELAYTIME = 1;
+
 export default class FlowChart {
     public graph: any;
     public nodesArray: any = {};
@@ -48,8 +50,11 @@ export default class FlowChart {
     public nowPage: any = {};
     public prePages: any = {};
     public canEditText: boolean = false;
-    public tipDialog: any;
+    public tipDialog: any = null;
     public theme: string = 'dark';
+    public timeline: any = null;
+    public isNeedAnimate: boolean = false;
+    public nowMouseOnNode: any = null;
 
     /**
      * @param canvasId (string) 用於套入canvas的<div>的id
@@ -319,6 +324,11 @@ export default class FlowChart {
     public showGrid() {
         this.graph.showGrid();
     }
+
+    // 設置是否動畫
+    public setIfNeedAnimate(isNeedAnimate: boolean = false) {
+        this.isNeedAnimate = isNeedAnimate;
+    }
     // #endregion
 
     // #region 畫圖相關
@@ -331,11 +341,13 @@ export default class FlowChart {
      * @param attr X6相關參數
      * {
      *      @param label (string)(optional) 文字, 需注意換行要加 \n
-     *      @param portLabel (object)(optional) 周圍的文字
-     *      {
-     *          @param portId (string) 要顯示在哪個角，有九個角，ex.'left'左中, 'left_top'左上, 'right_bottom'右下
-     *          @param label (string) 文字
-     *      }
+     *      @param portLabels (object)(optional) 周圍的文字
+     *      [
+     *          {
+     *              @param portId (string) 要顯示在哪個角，有九個角，ex.'left'左中, 'left_top'左上, 'right_bottom'右下
+     *              @param label (string) 文字
+     *          }
+     *      ]
      *      ...其他功能後續補充
      * }
      * @param data X6以外自定義參數
@@ -344,6 +356,7 @@ export default class FlowChart {
      *      @param name (string) 節點名稱
      *      @param size (obj)(optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
      *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+     *      @param tipContent (string) 滑鼠hover時的tip要顯示的文字
      *      fontSize: 文字大小
      *      ...其他功能後續補充
      * }
@@ -351,8 +364,8 @@ export default class FlowChart {
     public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
 
         let newPort = {};
-        if (attr && attr.portLabel) {
-            newPort = this.getPortLabelsetting(attr.portLabel);
+        if (attr && attr.portLabels) {
+            newPort = this.getPortLabelsSetting(attr.portLabels);
             // console.warn(newPort, attr, attr.portLabel);
         }
 
@@ -368,7 +381,9 @@ export default class FlowChart {
             },
             data: {
                 name: data.name ? data.name : '',
-                changeToFlowChart: ''
+                changeToFlowChart: '',
+                tipDialog: null,
+                tipParent: null
             }
         });
 
@@ -385,16 +400,16 @@ export default class FlowChart {
 
         let fontSize = attr.fontSize ? attr.fontSize : DEFAULT_FONTSIZE;
         if (attr && attr.label) {
-            const check = this.checkLabel(node.size().width, attr.label, fontSize);
+            const check = this.checkLabel(node.size(), attr.label, fontSize);
 
             node.label = check.newLabel;
             fontSize = check.newFontSize;
-            node.resize(check.newSize, node.size().height);
-            node.data.size = { w: check.newSize, h: node.size().height };
+            node.resize(check.newSize.width, check.newSize.height);
+            node.data.size = { w: check.newSize.width, h: check.newSize.height };
 
             // 這一段讓節點置中
-            const adjustX = check.newSize > DEFAULT_RECT_WIDTH ? -(check.newSize - DEFAULT_RECT_WIDTH) / 2 : (check.newSize - DEFAULT_RECT_WIDTH) / 2;
-            const adjustY = node.size().height > DEFAULT_RECT_HEIGHT ? -(node.size().height - DEFAULT_RECT_HEIGHT) / 2 : (node.size().height - DEFAULT_RECT_HEIGHT) / 2;
+            const adjustX = check.newSize.width > DEFAULT_RECT_WIDTH ? -(check.newSize.width - DEFAULT_RECT_WIDTH) / 2 : (check.newSize.width - DEFAULT_RECT_WIDTH) / 2;
+            const adjustY = check.newSize.height > DEFAULT_RECT_HEIGHT ? -(check.newSize.height - DEFAULT_RECT_HEIGHT) / 2 : (check.newSize.height - DEFAULT_RECT_HEIGHT) / 2;
             node.position(posX + adjustX, posY + adjustY);
         }
         node.attr('label/fontSize', fontSize);
@@ -404,6 +419,7 @@ export default class FlowChart {
         }
         if (data && data.seat) node.data.seat = data.seat;
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
+        if (data && data.tipParent) node.data.tipParent = data.tipParent;
 
         // console.warn();
         return node;
@@ -476,11 +492,12 @@ export default class FlowChart {
     }
 
     // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
-    public checkLabel(nodeSize: number, label: string, fontSize: number = 12) {
-        let newSize = nodeSize;
+    public checkLabel(nodeSize: any, label: string, fontSize: number = 12) {
+        let newSizeW = nodeSize.width;
+        let newSizeH = nodeSize.height;
         let newFontSize = fontSize;
         let newLabel = label;
-        let if_ = label.includes('_');
+        let ifn = label.includes('\n');
         let split = label.split('');
 
         // 如果太長超過節點就縮小字體大小
@@ -491,34 +508,37 @@ export default class FlowChart {
             }
         }
 
-        // 如果小到小於12還不夠就幫他換行(判斷有無底線)
-        // if (split.length * newFontSize > nodeSize) {
-        //     if (if_) {
-        //         const re = /_/g
-        //         newLabel = label.replace(re, '_\n');
-        //     }
-        // }
+        if (ifn) {
+            const withoutN = label.split('\n');
+            const longest = withoutN.sort((a, b) => b.length - a.length)[0];
+            split = longest.split('');
 
-        // 幫它放大節點size，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
-        if (split.length * newFontSize > newSize) {
-            newSize = (split.length * 0.6) * newFontSize;
+            // 幫它放大節點高度，保留padding兩個字，1.1是因為單純抓字數乘以大小節點會太小
+            if (withoutN.length * newFontSize > newSizeH) {
+                newSizeH = (withoutN.length * 1.1) * newFontSize;
+            }
         }
 
-        return { newSize: newSize, newLabel: newLabel, newFontSize: newFontSize }
+        // 幫它放大節點寬度，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
+        if (split.length * newFontSize > newSizeW) {
+            newSizeW = (split.length * 0.6) * newFontSize;
+        }
+
+        return { newSize: { width: newSizeW, height: newSizeH }, newLabel: newLabel, newFontSize: newFontSize }
     }
 
     // 節點周圍要顯示文字的話，要重寫port的設置
     /**
-     * @param portLabel (Array) 要設定文字的ports陣列
+     * @param portLabels (Array) 要設定文字的ports陣列
      * [
      *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
      * ]
      */
-    public getPortLabelsetting(portLabel: any = []) {
+    public getPortLabelsSetting(portLabels: any = []) {
         const groups = PORTS.groups;
         let items = PORTS.items;
         items.forEach((item, index) => {
-            const label = portLabel.find(e => e.portId === item.id);
+            const label = portLabels.find(e => e.portId === item.id);
             if (label !== undefined) {
                 items[index] = {
                     ...items[index],
@@ -539,13 +559,13 @@ export default class FlowChart {
     // 改變節點port文字
     /**
      * @param cell 節點
-     * @param portLabel (Array) 要設定文字的ports陣列
+     * @param portLabels (Array) 要設定文字的ports陣列
      * [
      *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
      * ]
      */
-    public setPortsLabel(cell: any = Node, portLabel: any = []) {
-        portLabel.forEach(item => {
+    public setPortsLabel(cell: any = Node, portLabels: any = []) {
+        portLabels.forEach(item => {
             cell.setPortProp(item.portId, ['attrs', 'text'], { text: item.label, fill: item.fill })
         });
     }
@@ -554,14 +574,33 @@ export default class FlowChart {
     /**
      * @param cell 節點
      * @param label 該節點本身的文字
-     * @param portLabel (Array) 要設定文字的ports陣列
+     * @param portLabels (Array) 要設定文字的ports陣列
      * [
      *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
      * ]
      */
-    public setNodeLabel(cell: any = Node, label: string = '', portLabel: any = []) {
+    public setNodeLabel(cell: any = Node, label: string | Array<any>, portLabels: any = []) {
         if (cell.label) cell.label = label;
-        if (portLabel.length) this.setPortsLabel(cell, portLabel);
+        if (portLabels.length) this.setPortsLabel(cell, portLabels);
+    }
+
+    // 改變節點內文字顏色
+    /**
+     * @param cell 節點
+     * @param settings (array)
+     * [
+     *      { index: 0, fill: 'red' } 第一行文字轉為紅色
+     * ]
+     */
+    public setNodeLabelColor(cell: any = Node, settings: Array<any> = []) {
+        let a = this.graph.findViewByCell(cell);
+        let allTspan = a.find('tspan');
+
+        settings.forEach(setting => {
+            let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
+            if (!withoutEmptyTspan[setting.index]) console.error('no this line!');
+            else withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
+        });
     }
 
     // 清除畫布
@@ -590,6 +629,12 @@ export default class FlowChart {
             outgoing: true,
         });
         gsap.delayedCall(1, () => {
+            this.setNodeLabel(nowNode,
+                'My Label',
+                [
+                    { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+                    { portId: 'bottom_right', label: 'success', fill: 'green' },
+                ]);
             this.unFlash(nowNode);
 
             edges.forEach((edge) => {
@@ -601,6 +646,8 @@ export default class FlowChart {
     public startEdgeAnimate(nowEdge: Edge) {
         const view = this.graph.findViewByCell(nowEdge) as EdgeView;
         if (view) {
+            const token = Vector.create('circle', { r: 6, fill: '#feb662' });
+            const source = nowEdge.getSourceCell() as Node;
             const target = nowEdge.getTargetCell() as Node;
             // 判斷是邊的話就建立球，沿著邊前進
             const callback = () => {
@@ -608,7 +655,8 @@ export default class FlowChart {
                     this.startNodeAnimate(target);
                 }
             }
-            const token = Vector.create('circle', { r: 6, fill: '#feb662' });
+
+            console.log(nowEdge)
 
             view.sendToken(token.node, 1000, callback);
         }
@@ -709,37 +757,98 @@ export default class FlowChart {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
+            // let a = this.graph.findViewByCell(cell);
+            // let allTspan = a.find('tspan');
+            // let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
+            // withoutEmptyTspan[0].setAttribute('fill', 'red');
+            // console.log(cell, a, withoutEmptyTspan);
+            if (this.isNeedAnimate) this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
-            if (this.tipDialog) {
+
+            // 有tip情況下，進入節點或是tip都不移除
+            if (this.tipDialog && cell.id !== this.tipDialog.data.tipParent.id && cell.id !== this.tipDialog.id) {
                 this.graph.removeNode(this.tipDialog);
                 this.tipDialog = null;
+                gsap.globalTimeline.clear();
+                this.timeline = null;
             }
+
             if (cell) {
-                // console.log(cell.getAttrs());
+                this.nowMouseOnNode = cell;
+                if (cell.data && !cell.data.tipContent) return;
                 const posX = cell.position().x + TIP_DIALOG_ADJUST_X;
                 const posY = cell.position().y + TIP_DIALOG_ADJUST_Y;
                 const attr = {
-                    label: cell.data.tipContent ? cell.data.tipContent : 'test',
+                    label: cell.data.tipContent ? cell.data.tipContent : '',
                     fontSize: 15,
                 };
-                this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr);
-                this.setNodeLabel(cell,
-                    'My Label',
-                    [
-                        { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
-                        { portId: 'bottom_right', label: 'success', fill: 'green' },
+
+                if (!this.tipDialog) {
+                    this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr, { tipParent: cell });
+                    cell.data.tipDialog = this.tipDialog;
+                }
+                this.timeline = gsap.timeline();
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+                        { index: 0, fill: 'green' },
+                        { index: 1, fill: 'green' },
+                        { index: 2, fill: 'green' },
+                        { index: 3, fill: 'green' },
+                        { index: 4, fill: 'red' },
                     ]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+                        { index: 4, fill: 'green' },
+                        { index: 5, fill: 'green' },
+                    ]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 6, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 7, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 9, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 10, fill: 'green' },]);
+                }));
+                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
+                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
+                }));
+                this.timeline.add(() => { this.timeline ?.kill(); });
+
+                // this.setNodeLabel(cell,
+                //     'My Label',
+                //     [
+                //         { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+                //         { portId: 'bottom_right', label: 'success', fill: 'green' },
+                //     ]);
             }
         })
 
         this.graph.on('node:mouseleave', ({ cell }) => {
-            if (this.tipDialog) {
-                this.graph.removeNode(this.tipDialog);
-                this.tipDialog = null;
-            }
+            this.nowMouseOnNode = null;
+            gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+                if (!this.nowMouseOnNode && this.tipDialog) {
+                    this.graph.removeNode(this.tipDialog);
+                    this.tipDialog = null;
+                    // gsap.globalTimeline.clear();
+                    // this.timeline = null;
+                }
+            });
+
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {

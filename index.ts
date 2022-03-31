@@ -8,8 +8,9 @@ new ChartTest();
 
 // ex
 let x6fc = new FlowChart('container', { width: 1500, height: 1200, theme: 'dark', isGrid: false });
-
 // let x6fc = new FlowChart('container');
+
+// x6fc.setIfNeedAnimate(true);
 
 
 import { registerName } from './src/constants/config'
@@ -17,12 +18,18 @@ let start_x = 0;
 let start_y = 0;
 let increase_x = 400;
 let increase_y = 200;
-let oneLineNum = 6;
+let oneLineNum = 3;
+
+const arr = ['Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
+const tipArr = ['', 'a', 'bbb'];
 // 開始繪製node
 let nodeArray: any[] = [];
-for (let i = 0; i < 16; i++) {
+for (let i = 0; i < 2; i++) {
 
-    let event_name = 'Btn_Base_PersonalNamePopup_ConfirmResult' + i;
+    // let event_name = arr[i % 4] + i;
+    // let event_name = 'Btn_Base_PersonalNamePopup\n_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResultBtn\n_Base_PersonalNamePopup_ConfirmResult' + i;
+    let event_name = 'Btn_\nBase_P\nersonalNa\nmePopup\n_ConfirmResul\ntBtn_Base_Persona\nlNamePopup_\nConfirmResu\nltBtn\n_Base_Per\nsonalNamePop\nup_ConfirmResult' + i;
+    // let event_name = 'Btn_Base_PersonalNamePopup_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResult' + i;
 
 
     // 計算出這個node的位置
@@ -30,12 +37,22 @@ for (let i = 0; i < 16; i++) {
 
     let node = x6fc.drawNode(position.x, position.y, registerName.process, {
         label: event_name,
-        portLabel: [
+        portLabels: [
             { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
             { portId: 'bottom_right', label: 'not yet', fill: 'red' },
         ]
-    });
+    }, {
+            tipContent: event_name
+        });
     nodeArray.push(node);
+
+    // x6fc.setNodeLabelColor(node, [
+    //     { index: 0, fill: 'red' },
+    //     { index: 1, fill: 'green' },
+    //     { index: 2, fill: 'black' },
+    //     { index: 3, fill: 'yellow' },
+    //     { index: 4, fill: 'blue' },
+    // ])
 
 }
 
