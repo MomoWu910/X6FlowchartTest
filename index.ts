@@ -35,24 +35,19 @@ for (let i = 0; i < 2; i++) {
     // 計算出這個node的位置
     let position = getDrawNodePosition(start_x, start_y, increase_x, increase_y, oneLineNum, i);
 
-    let node = x6fc.drawNode(position.x, position.y, registerName.process, {
-        label: event_name,
-        portLabels: [
-            { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
-            { portId: 'bottom_right', label: 'not yet', fill: 'red' },
-        ]
-    }, {
+    let node = x6fc.drawNode(position.x, position.y, registerName.process,
+        {
+            label: event_name,
+            portLabels: [
+                { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+                { portId: 'bottom_right', label: 'not yet', fill: 'red' },
+            ]
+        },
+        {
             tipContent: event_name
-        });
+        }
+    );
     nodeArray.push(node);
-
-    // x6fc.setNodeLabelColor(node, [
-    //     { index: 0, fill: 'red' },
-    //     { index: 1, fill: 'green' },
-    //     { index: 2, fill: 'black' },
-    //     { index: 3, fill: 'yellow' },
-    //     { index: 4, fill: 'blue' },
-    // ])
 
 }
 

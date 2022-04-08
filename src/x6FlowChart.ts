@@ -39,7 +39,9 @@ const emptyPage = {
     nodes: []
 }
 
-const TIP_TEXT_DELAYTIME = 1;
+const DEFAULT_CHANGE_COLOR_DELAY = 0.1;
+const TIP_TEXT_DELAYTIME = 1 / 2;
+const isTest = false;
 
 export default class FlowChart {
     public graph: any;
@@ -55,6 +57,7 @@ export default class FlowChart {
     public timeline: any = null;
     public isNeedAnimate: boolean = false;
     public nowMouseOnNode: any = null;
+    public delayTime_changefColor = DEFAULT_CHANGE_COLOR_DELAY;
 
     /**
      * @param canvasId (string) 用於套入canvas的<div>的id
@@ -329,6 +332,11 @@ export default class FlowChart {
     public setIfNeedAnimate(isNeedAnimate: boolean = false) {
         this.isNeedAnimate = isNeedAnimate;
     }
+
+    // 設置已紀錄顏色文本改顏色的延遲時間
+    public setDelayTime_changeColor(delayTime: number = DEFAULT_CHANGE_COLOR_DELAY) {
+        this.delayTime_changefColor = delayTime;
+    }
     // #endregion
 
     // #region 畫圖相關
@@ -341,7 +349,7 @@ export default class FlowChart {
      * @param attr X6相關參數
      * {
      *      @param label (string)(optional) 文字, 需注意換行要加 \n
-     *      @param portLabels (object)(optional) 周圍的文字
+     *      @param portLabels (array<object>)(optional) 周圍的文字
      *      [
      *          {
      *              @param portId (string) 要顯示在哪個角，有九個角，ex.'left'左中, 'left_top'左上, 'right_bottom'右下
@@ -358,15 +366,14 @@ export default class FlowChart {
      *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
      *      @param tipContent (string) 滑鼠hover時的tip要顯示的文字
      *      fontSize: 文字大小
-     *      ...其他功能後續補充
      * }
      */
     public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
 
+        // 如果有要顯示文字在port，先調整port設定檔
         let newPort = {};
         if (attr && attr.portLabels) {
             newPort = this.getPortLabelsSetting(attr.portLabels);
-            // console.warn(newPort, attr, attr.portLabel);
         }
 
         const node = this.graph.addNode({
@@ -383,24 +390,15 @@ export default class FlowChart {
                 name: data.name ? data.name : '',
                 changeToFlowChart: '',
                 tipDialog: null,
-                tipParent: null
+                tipParent: (data && data.tipParent) ? data.tipParent : null,
+                colorSets: {},
+                tipColorSets: {}
             }
         });
 
-        // if (data && data.size) {
-        //     node.resize(data.size.w, data.size.h);
-
-        //     // 這一段讓節點置中
-        //     const adjustX = data.size.w > DEFAULT_RECT_WIDTH ? -(data.size.w - DEFAULT_RECT_WIDTH) / 2 : (data.size.w - DEFAULT_RECT_WIDTH) / 2;
-        //     const adjustY = data.size.h > DEFAULT_RECT_HEIGHT ? -(data.size.h - DEFAULT_RECT_HEIGHT) / 2 : (data.size.h - DEFAULT_RECT_HEIGHT) / 2;
-        //     node.position(posX + adjustX, posY + adjustY);
-
-        //     node.data.size = data.size;
-        // }
-
         let fontSize = attr.fontSize ? attr.fontSize : DEFAULT_FONTSIZE;
         if (attr && attr.label) {
-            const check = this.checkLabel(node.size(), attr.label, fontSize);
+            const check = this.checkLabelIfTooLong(node.size(), attr.label, fontSize);
 
             node.label = check.newLabel;
             fontSize = check.newFontSize;
@@ -414,14 +412,10 @@ export default class FlowChart {
         }
         node.attr('label/fontSize', fontSize);
 
-        if (shape === registerName.changeToOtherFlowChart) {
-            node.data.changeToFlowChart = data.changeToFlowChart;
-        }
+        if (shape === registerName.changeToOtherFlowChart) node.data.changeToFlowChart = data.changeToFlowChart;
         if (data && data.seat) node.data.seat = data.seat;
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
-        if (data && data.tipParent) node.data.tipParent = data.tipParent;
 
-        // console.warn();
         return node;
     }
 
@@ -492,7 +486,7 @@ export default class FlowChart {
     }
 
     // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
-    public checkLabel(nodeSize: any, label: string, fontSize: number = 12) {
+    public checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = 12) {
         let newSizeW = nodeSize.width;
         let newSizeH = nodeSize.height;
         let newFontSize = fontSize;
@@ -519,12 +513,18 @@ export default class FlowChart {
             }
         }
 
+        let colorSets = {};
+        const withoutN = label.split('\n');
+        withoutN.forEach((line, index) => {
+            colorSets[index] = 'white';
+        })
+
         // 幫它放大節點寬度，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
         if (split.length * newFontSize > newSizeW) {
             newSizeW = (split.length * 0.6) * newFontSize;
         }
 
-        return { newSize: { width: newSizeW, height: newSizeH }, newLabel: newLabel, newFontSize: newFontSize }
+        return { newSize: { width: newSizeW, height: newSizeH }, newLabel: newLabel, newFontSize: newFontSize, colorSets: colorSets }
     }
 
     // 節點周圍要顯示文字的話，要重寫port的設置
@@ -599,7 +599,11 @@ export default class FlowChart {
         settings.forEach(setting => {
             let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
             if (!withoutEmptyTspan[setting.index]) console.error('no this line!');
-            else withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
+            else {
+                withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
+                if (cell.data.tipParent) cell.data.tipParent.data.tipColorSets[setting.index] = setting.fill;
+                cell.data.colorSets[setting.index] = setting.fill;
+            }
         });
     }
 
@@ -655,8 +659,6 @@ export default class FlowChart {
                     this.startNodeAnimate(target);
                 }
             }
-
-            console.log(nowEdge)
 
             view.sendToken(token.node, 1000, callback);
         }
@@ -757,13 +759,12 @@ export default class FlowChart {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
-            // let a = this.graph.findViewByCell(cell);
-            // let allTspan = a.find('tspan');
-            // let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
-            // withoutEmptyTspan[0].setAttribute('fill', 'red');
-            // console.log(cell, a, withoutEmptyTspan);
             if (this.isNeedAnimate) this.startNodeAnimate(cell);
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
+            this.setNodeLabelColor(cell, [
+                { index: 4, fill: 'green' },
+                { index: 5, fill: 'green' },
+            ]);
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
@@ -787,65 +788,39 @@ export default class FlowChart {
                 };
 
                 if (!this.tipDialog) {
-                    this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr, { tipParent: cell });
+                    this.tipDialog = this.drawNode(posX, posY, registerName.tipDialog, attr,
+                        {
+                            tipParent: cell,
+                            colorSets: cell.data.tipColorSets ? cell.data.tipColorSets : {}
+                        }
+                    );
                     cell.data.tipDialog = this.tipDialog;
-                }
-                this.timeline = gsap.timeline();
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
-                        { index: 0, fill: 'green' },
-                        { index: 1, fill: 'green' },
-                        { index: 2, fill: 'green' },
-                        { index: 3, fill: 'green' },
-                        { index: 4, fill: 'red' },
-                    ]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
-                        { index: 4, fill: 'green' },
-                        { index: 5, fill: 'green' },
-                    ]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 6, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 7, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 9, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 10, fill: 'green' },]);
-                }));
-                this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
-                    if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
-                }));
-                this.timeline.add(() => { this.timeline ?.kill(); });
 
-                // this.setNodeLabel(cell,
-                //     'My Label',
-                //     [
-                //         { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
-                //         { portId: 'bottom_right', label: 'success', fill: 'green' },
-                //     ]);
+                    gsap.delayedCall(this.delayTime_changefColor, () => {
+                        if (cell.data.tipColorSets && Object.keys(cell.data.tipColorSets).length > 0) {
+                            let colorSets: Array<any> = [];
+                            const settings = Object.keys(cell.data.tipColorSets).map((key, index) => {
+                                const set = { index: index, fill: cell.data.tipColorSets[key] };
+                                colorSets.push(set);
+                            });
+                            this.setNodeLabelColor(this.tipDialog, colorSets);
+                        }
+                    });
+                }
+
+                if (isTest && Object.keys(cell.data.tipColorSets).length == 0) this.timelineTest(cell);
+
             }
         })
 
-        this.graph.on('node:mouseleave', ({ cell }) => {
+        this.graph.on('node:mouseleave', () => {
             this.nowMouseOnNode = null;
-            gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            gsap.delayedCall(TIP_TEXT_DELAYTIME / 2, () => {
                 if (!this.nowMouseOnNode && this.tipDialog) {
                     this.graph.removeNode(this.tipDialog);
                     this.tipDialog = null;
-                    // gsap.globalTimeline.clear();
-                    // this.timeline = null;
+                    gsap.globalTimeline.clear();
+                    this.timeline = null;
                 }
             });
 
@@ -909,6 +884,56 @@ export default class FlowChart {
             });
         }
 
+    }
+
+    public timelineTest(testContent: any) {
+
+        this.timeline = gsap.timeline();
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+                { index: 0, fill: 'green' },
+                { index: 1, fill: 'green' },
+                { index: 2, fill: 'green' },
+                { index: 3, fill: 'green' },
+                { index: 4, fill: 'red' },
+            ]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+                { index: 4, fill: 'green' },
+                { index: 5, fill: 'green' },
+            ]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 6, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 7, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 9, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 10, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
+        }));
+        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+            this.setNodeLabel(testContent,
+                'My Label',
+                [
+                    { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+                    { portId: 'bottom_right', label: 'success', fill: 'green' },
+                ]);
+        }));
+        this.timeline.add(() => { this.timeline ?.kill(); });
     }
 
     // 初始化图形定義
