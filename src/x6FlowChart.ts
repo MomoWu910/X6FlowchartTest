@@ -39,7 +39,7 @@ const emptyPage = {
     nodes: []
 }
 
-const DEFAULT_CHANGE_COLOR_DELAY = 0.1;
+const DEFAULT_CHANGE_COLOR_DELAY = 0.5;
 const TIP_TEXT_DELAYTIME = 1 / 2;
 const isTest = false;
 
@@ -391,8 +391,8 @@ export default class FlowChart {
                 changeToFlowChart: '',
                 tipDialog: null,
                 tipParent: (data && data.tipParent) ? data.tipParent : null,
-                colorSets: {},
-                tipColorSets: {}
+                colorSets: (data && data.colorSets) ? data.colorSets : {},
+                tipColorSets: (data && data.tipColorSets) ? data.tipColorSets : {}
             }
         });
 
@@ -404,6 +404,7 @@ export default class FlowChart {
             fontSize = check.newFontSize;
             node.resize(check.newSize.width, check.newSize.height);
             node.data.size = { w: check.newSize.width, h: check.newSize.height };
+            if (data && data.colorSets && Object.keys(data.colorSets).length === 0) node.data.colorSets = check.colorSets;
 
             // 這一段讓節點置中
             const adjustX = check.newSize.width > DEFAULT_RECT_WIDTH ? -(check.newSize.width - DEFAULT_RECT_WIDTH) / 2 : (check.newSize.width - DEFAULT_RECT_WIDTH) / 2;
@@ -411,10 +412,24 @@ export default class FlowChart {
             node.position(posX + adjustX, posY + adjustY);
         }
         node.attr('label/fontSize', fontSize);
+        if (attr && attr.fill) node.attr('label/fill', attr.fill);
 
         if (shape === registerName.changeToOtherFlowChart) node.data.changeToFlowChart = data.changeToFlowChart;
         if (data && data.seat) node.data.seat = data.seat;
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
+
+        if (data.colorSets) {
+            gsap.delayedCall(this.delayTime_changefColor, () => {
+                if (node.data.colorSets && Object.keys(node.data.colorSets).length > 0) {
+                    let colorSets: Array<any> = [];
+                    const settings = Object.keys(node.data.colorSets).map((key, index) => {
+                        const set = { index: index, fill: node.data.colorSets[key] };
+                        colorSets.push(set);
+                    });
+                    this.setNodeLabelColor(node, colorSets);
+                }
+            });
+        }
 
         return node;
     }
@@ -795,17 +810,6 @@ export default class FlowChart {
                         }
                     );
                     cell.data.tipDialog = this.tipDialog;
-
-                    gsap.delayedCall(this.delayTime_changefColor, () => {
-                        if (cell.data.tipColorSets && Object.keys(cell.data.tipColorSets).length > 0) {
-                            let colorSets: Array<any> = [];
-                            const settings = Object.keys(cell.data.tipColorSets).map((key, index) => {
-                                const set = { index: index, fill: cell.data.tipColorSets[key] };
-                                colorSets.push(set);
-                            });
-                            this.setNodeLabelColor(this.tipDialog, colorSets);
-                        }
-                    });
                 }
 
                 if (isTest && Object.keys(cell.data.tipColorSets).length == 0) this.timelineTest(cell);

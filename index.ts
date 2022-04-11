@@ -22,6 +22,21 @@ let oneLineNum = 3;
 
 const arr = ['Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
 const tipArr = ['', 'a', 'bbb'];
+const tipColorSetsArr = [
+    { index: 0, fill: 'green' },
+    { index: 1, fill: 'green' },
+    { index: 2, fill: 'green' },
+    { index: 3, fill: 'red' },
+]
+const colorSetsArr = [
+    { index: 0, fill: 'green' },
+    { index: 1, fill: 'green' },
+    { index: 2, fill: 'green' },
+    { index: 3, fill: 'red' },
+]
+const colorSets = {
+    0: 'green', 1: 'green', 2: 'green', 3: 'green', 4: 'red'
+};
 // 開始繪製node
 let nodeArray: any[] = [];
 for (let i = 0; i < 2; i++) {
@@ -38,13 +53,16 @@ for (let i = 0; i < 2; i++) {
     let node = x6fc.drawNode(position.x, position.y, registerName.process,
         {
             label: event_name,
+            fill: 'blue',
             portLabels: [
                 { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
                 { portId: 'bottom_right', label: 'not yet', fill: 'red' },
             ]
         },
         {
-            tipContent: event_name
+            tipContent: event_name,
+            colorSets: colorSets,
+            tipColorSets: colorSets
         }
     );
     nodeArray.push(node);
@@ -85,13 +103,3 @@ function getDrawNodePosition(start_x, start_y, diff_x, diff_y, maxRow, index) {
 
     return position;
 }
-
-    // todo: 
-    // 1.節點換行的話，線要轉折Ｖ
-    // label太長幫他縮小Ｖ
-    // 2.node 四周放文字 V
-    // 3.定義port在config V
-    // 3.edge分類在明確一點
-    // 畫布起始點、延伸問題
-
-    // 動態文本接口
