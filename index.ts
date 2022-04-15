@@ -20,7 +20,7 @@ let increase_x = 400;
 let increase_y = 200;
 let oneLineNum = 3;
 
-const arr = ['Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
+const arr = ['按下確認修改玩家頭像按鈕結果', 'Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
 const tipArr = ['', 'a', 'bbb'];
 const tipColorSetsArr = [
     { index: 0, fill: 'green' },
@@ -41,11 +41,11 @@ const colorSets = {
 let nodeArray: any[] = [];
 for (let i = 0; i < 2; i++) {
 
-    // let event_name = arr[i % 4] + i;
+    let event_name = arr[i % 4] + i;
     // let event_name = 'Btn_Base_PersonalNamePopup\n_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResultBtn\n_Base_PersonalNamePopup_ConfirmResult' + i;
-    let event_name = 'Btn_\nBase_P\nersonalNa\nmePopup\n_ConfirmResul\ntBtn_Base_Persona\nlNamePopup_\nConfirmResu\nltBtn\n_Base_Per\nsonalNamePop\nup_ConfirmResult' + i;
+    // let event_name = 'Btn_\nBase_P\nersonalNa\nmePopup\n_ConfirmResul\ntBtn_Base_Persona\nlNamePopup_\nConfirmResu\nltBtn\n_Base_Per\nsonalNamePop\nup_ConfirmResult' + i;
     // let event_name = 'Btn_Base_PersonalNamePopup_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResultBtn_Base_PersonalNamePopup_ConfirmResult' + i;
-
+    // let event_name = '按下確認修改玩家頭像按鈕結果';
 
     // 計算出這個node的位置
     let position = getDrawNodePosition(start_x, start_y, increase_x, increase_y, oneLineNum, i);
@@ -60,9 +60,9 @@ for (let i = 0; i < 2; i++) {
             ]
         },
         {
-            tipContent: event_name,
-            colorSets: colorSets,
-            tipColorSets: colorSets
+            tipContent: 'tip label\nline2',
+            colorSets: { 0: 'red', 1: 'red' },
+            tipColorSets: { 0: 'green', 1: 'green' }
         }
     );
     nodeArray.push(node);
@@ -72,11 +72,13 @@ for (let i = 0; i < 2; i++) {
 // 將裡面每個node加上箭頭線條
 for (let i = 0; i < nodeArray.length - 1; i++) {
 
+    // let node1 = { cell: nodeArray[i], port: 'right_top' };
+    // let node2 = { cell: nodeArray[i + 1], port: 'left_bottom' };
     let node1 = nodeArray[i];
     let node2 = nodeArray[i + 1];
 
     let direct = (i + 1) % oneLineNum == 0 ? 'v' : 'h';
-    x6fc.drawEdge(node1, node2, direct);
+    x6fc.drawEdge(node1, node2, direct, registerName.normalEdge, { label: 'Y' });
 }
 function getDrawNodePosition(start_x, start_y, diff_x, diff_y, maxRow, index) {
 

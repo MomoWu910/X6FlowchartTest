@@ -11,6 +11,7 @@ import popupRemaining from '../res/nodeAssets/popupRemaining.png';
 import popupReturnGame from '../res/nodeAssets/popupReturnGame.png';
 import popupConnectFailed from '../res/nodeAssets/popupConnectFailed.png';
 import { gsap } from 'gsap';
+import { franc } from 'franc';
 
 const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
@@ -144,13 +145,13 @@ export default class FlowChart {
             for (let i = 0; i < lFlows.length; i++) {
                 const flow = lFlows[i];
                 let checkYesOrNo = '';
-                let source = { source: this.nodesArray[flow[0]], port: flow[2] };
+                let source = { cell: this.nodesArray[flow[0]], port: flow[2] };
                 if (flow[0].split("_")[2]) {
                     checkYesOrNo = flow[0].split("_")[2];
-                    source = { source: this.nodesArray[`${flow[0].split("_")[0]}_${flow[0].split("_")[1]}`], port: flow[2] };
+                    source = { cell: this.nodesArray[`${flow[0].split("_")[0]}_${flow[0].split("_")[1]}`], port: flow[2] };
                 }
 
-                const target = { target: this.nodesArray[flow[1]], port: flow[3] };
+                const target = { cell: this.nodesArray[flow[1]], port: flow[3] };
                 this.drawEdge(source, target, 'l', registerName.lEdge, { label: checkYesOrNo, sourceSeat: flow[0], targetSeat: flow[1], sourcePort: flow[2], targetPort: flow[3] });
             }
         }
@@ -345,27 +346,31 @@ export default class FlowChart {
      * 
      * @param posX 座標x
      * @param posY 座標y
-     * @param shape 形狀, 預設圓角矩形
-     * @param attr X6相關參數
+     * @param shape 形狀, 預設圓角矩形, 對應 H5FC.registerName 內容
+     * 
+     * @param attr (obj, optional) 文本相關參數(不包含tip)
      * {
-     *      @param label (string)(optional) 文字, 需注意換行要加 \n
-     *      @param portLabels (array<object>)(optional) 周圍的文字
+     *      @param label (string)(optional) 文字, 需注意換行要加"\n"
+     *      @param fill (string)(optional) 節點整段文字顏色，會被 data.colorSets 蓋掉
+     *      @param fontSize (number)(optional) 文字大小，最小12，預設也是12
+     *      @param portLabels (array<object>)(optional) 周圍port的文字
      *      [
      *          {
-     *              @param portId (string) 要顯示在哪個角，有九個角，ex.'left'左中, 'left_top'左上, 'right_bottom'右下
-     *              @param label (string) 文字
+     *              @param portId (string) 要顯示在哪個port，有12個，ex.'left'左中, 'left_top'左上, 'right_bottom'右下，依此類推
+     *              @param label (string) port上文字
      *          }
      *      ]
-     *      ...其他功能後續補充
-     * }
-     * @param data X6以外自定義參數
+     * },  
+     * 
+     * @param data (obj, optional) X6 相關參數之外的自定義參數
      * {
-     *      @param seat (string) 節點對應座標
-     *      @param name (string) 節點名稱
+     *      @param seat (string)(optional) 如果是用 config 方式來繪製流程圖，則用來與 config 座標對應，平常就不用帶
+     *      @param name (string)(optional) 節點名稱
      *      @param size (obj)(optional) 如果要調整該節點大小，傳入 { w: xx, h: xx } 的格式 
-     *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點shape類型要為 registerName.changeToOtherFlowChart
+     *      @param changeToFlowChart (string)(optional) 此節點會轉換去哪個流程圖，需注意節點 shape 類型要為 H5FC.registerName.changeToOtherFlowChart
      *      @param tipContent (string) 滑鼠hover時的tip要顯示的文字
-     *      fontSize: 文字大小
+     *      @param colorSets (obj)(optional) 節點的文本分行顏色設定，格式為 { index: fill }，要注意這邊的設定會蓋掉 attr.fill 的設定
+     *      @param tipColorSets (obj)(optional) 節點tip的文本分行顏色設定，格式為 { index: fill }
      * }
      */
     public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
@@ -387,7 +392,7 @@ export default class FlowChart {
                 }
             },
             data: {
-                name: data.name ? data.name : '',
+                name: (data && data.name) ? data.name : '',
                 changeToFlowChart: '',
                 tipDialog: null,
                 tipParent: (data && data.tipParent) ? data.tipParent : null,
@@ -396,7 +401,7 @@ export default class FlowChart {
             }
         });
 
-        let fontSize = attr.fontSize ? attr.fontSize : DEFAULT_FONTSIZE;
+        let fontSize = (attr && attr.fontSize) ? attr.fontSize : DEFAULT_FONTSIZE;
         if (attr && attr.label) {
             const check = this.checkLabelIfTooLong(node.size(), attr.label, fontSize);
 
@@ -418,7 +423,7 @@ export default class FlowChart {
         if (data && data.seat) node.data.seat = data.seat;
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
 
-        if (data.colorSets) {
+        if (data && data.colorSets) {
             gsap.delayedCall(this.delayTime_changefColor, () => {
                 if (node.data.colorSets && Object.keys(node.data.colorSets).length > 0) {
                     let colorSets: Array<any> = [];
@@ -446,29 +451,32 @@ export default class FlowChart {
      *      @param label (string)(optional) 邊上顯示文字，通常是“是”、“否”
      *      @param sourceSeat (string) 起點座標
      *      @param targetSeat (string) 終點座標
-     *      @param sourcePort (string) 起點port
-     *      @param targetPort (string) 終點port
      * }
      */
     public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, data: any = {}) {
         let sourceCheck, targetCheck;
+        let sourceX = source.cell ? source.cell.position().x : (source.position() ? source.position().x : source.x);
+        let sourceY = source.cell ? source.cell.position().y : (source.position() ? source.position().y : source.y);
+        let targetX = target.cell ? target.cell.position().x : (target.position() ? target.position().x : target.x);
+        let targetY = target.cell ? target.cell.position().y : (target.position() ? target.position().y : target.y);
+
         if (direction === 'v' || direction === 'V') {
             // 檢查方向，source在上方那就從 bottom->top，在下方就 top->bottom
             // 下方的y比較大
-            let checkV = (source.position().y - target.position().y) < 0;
-            sourceCheck = { cell: source, port: checkV ? 'bottom' : 'top' };
-            targetCheck = { cell: target, port: checkV ? 'top' : 'bottom' };
+            let checkV = (sourceY - targetY) < 0;
+            sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkV ? 'bottom' : 'top') };
+            targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkV ? 'top' : 'bottom') };
         }
         if (direction === 'h' || direction === 'H') {
             // 檢查方向，source在左方那就從 right->left，在右方就 left->right
             // 右方的x比較大
-            let checkH = (source.position().x - target.position().x) < 0;
-            sourceCheck = { cell: source, port: checkH ? 'right' : 'left' };
-            targetCheck = { cell: target, port: checkH ? 'left' : 'right' };
+            let checkH = (sourceX - targetX) < 0;
+            sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkH ? 'right' : 'left') };
+            targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkH ? 'left' : 'right') };
         }
         if (direction === 'l' || direction === 'L') {
-            sourceCheck = { cell: source.source, port: source.port };
-            targetCheck = { cell: target.target, port: target.port };
+            sourceCheck = { cell: source.cell, port: source.port };
+            targetCheck = { cell: target.cell, port: target.port };
         }
 
         const edge = this.graph.addEdge({
@@ -485,32 +493,41 @@ export default class FlowChart {
                 direction: direction,
                 sourceSeat: data.sourceSeat ? data.sourceSeat : '',
                 targetSeat: data.targetSeat ? data.targetSeat : '',
-                sourcePort: data.sourcePort ? data.sourcePort : '',
-                targetPort: data.targetPort ? data.targetPort : '',
+                sourcePort: sourceCheck.port,
+                targetPort: targetCheck.port,
             }
         });
 
         if (data && data.label) {
             if (data.label === 'n' || data.label === 'N') edge.appendLabel('否');
-            if (data.label === 'y' || data.label === 'Y') edge.appendLabel('是');
+            else if (data.label === 'y' || data.label === 'Y') edge.appendLabel('是');
+            else edge.appendLabel(data.label);
 
             edge.data = {
                 label: data.label
             };
         }
+
+        return edge;
     }
 
     // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
-    public checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = 12) {
+    public checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = DEFAULT_FONTSIZE) {
         let newSizeW = nodeSize.width;
         let newSizeH = nodeSize.height;
         let newFontSize = fontSize;
         let newLabel = label;
         let ifn = label.includes('\n');
-        let split = label.split('');
+        let withoutN = ifn ? label.split('\n') : [label];
+        let longest = ifn ? withoutN.sort((a, b) => b.length - a.length)[0] : label;
+        let split = longest.split('');
+        let ifCMN = franc(longest) == 'cmn';
+        let minFontSize = ifCMN ? 14 : 12;
+        let fontSizeAdjust = ifCMN ? 1.1 : 0.6;
 
         // 如果太長超過節點就縮小字體大小
-        for (let size = fontSize; size < 12; size--) {
+        if (fontSize < minFontSize) newFontSize = minFontSize;
+        for (let size = newFontSize; size < minFontSize; size--) {
             if (split.length * size < nodeSize) {
                 newFontSize = size;
                 break;
@@ -518,10 +535,6 @@ export default class FlowChart {
         }
 
         if (ifn) {
-            const withoutN = label.split('\n');
-            const longest = withoutN.sort((a, b) => b.length - a.length)[0];
-            split = longest.split('');
-
             // 幫它放大節點高度，保留padding兩個字，1.1是因為單純抓字數乘以大小節點會太小
             if (withoutN.length * newFontSize > newSizeH) {
                 newSizeH = (withoutN.length * 1.1) * newFontSize;
@@ -529,14 +542,13 @@ export default class FlowChart {
         }
 
         let colorSets = {};
-        const withoutN = label.split('\n');
         withoutN.forEach((line, index) => {
             colorSets[index] = 'white';
         })
 
         // 幫它放大節點寬度，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
         if (split.length * newFontSize > newSizeW) {
-            newSizeW = (split.length * 0.6) * newFontSize;
+            newSizeW = (split.length * fontSizeAdjust) * newFontSize;
         }
 
         return { newSize: { width: newSizeW, height: newSizeH }, newLabel: newLabel, newFontSize: newFontSize, colorSets: colorSets }
