@@ -73,10 +73,10 @@ export default class FlowChart {
     constructor(canvasId: string, option: any = {}) {
 
         this.initContainer(canvasId)
-        this.initConfigs([                  // 初始化config檔
-            overviewConfig,
-            roomGameBeforeConfig
-        ]);
+        // this.initConfigs([                  // 初始化config檔
+        //     overviewConfig,
+        //     roomGameBeforeConfig
+        // ]);
         this.initGraph(option);                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
@@ -171,6 +171,23 @@ export default class FlowChart {
         this.editedConfigs[this.nowPage.name] = this.nowPage;
 
         this.drawFromConfig(this.editedConfigs[configName]);
+    }
+
+    // 返回上一張流程圖
+    public backToPrePage() {
+        const nowLevel = this.nowPage.level;
+        if (!this.prePages[nowLevel - 1]) {
+            console.warn('no pre page!');
+            return;
+        }
+        this.graph.clearCells();
+
+        // 清空當前level
+        this.prePages[this.nowPage.level] = '';
+
+        // 暫存本頁
+        this.editedConfigs[this.nowPage.name] = this.nowPage;
+        this.drawFromConfig(this.editedConfigs[this.prePages[nowLevel - 1]]);
     }
     // #endregion
 
@@ -292,31 +309,15 @@ export default class FlowChart {
     // #endregion
 
     // #region 功能相關
-    // 返回上一張流程圖
-    public backToPrePage() {
-        const nowLevel = this.nowPage.level;
-        if (!this.prePages[nowLevel - 1]) {
-            console.warn('no pre page!');
-            return;
-        }
-        this.graph.clearCells();
-
-        // 清空當前level
-        this.prePages[this.nowPage.level] = '';
-
-        // 暫存本頁
-        this.editedConfigs[this.nowPage.name] = this.nowPage;
-        this.drawFromConfig(this.editedConfigs[this.prePages[nowLevel - 1]]);
-    }
 
     // zoom in
-    public zoomIn() {
-        this.graph.zoom(0.1);
+    public zoomIn(value: number = 0.1) {
+        this.graph.zoom(value);
     }
 
     // zoom out
-    public zoomOut() {
-        this.graph.zoom(-0.1);
+    public zoomOut(value: number = -0.1) {
+        this.graph.zoom(value);
     }
 
     // 隱藏隔線
@@ -327,11 +328,6 @@ export default class FlowChart {
     // 顯示隔線
     public showGrid() {
         this.graph.showGrid();
-    }
-
-    // 設置是否動畫
-    public setIfNeedAnimate(isNeedAnimate: boolean = false) {
-        this.isNeedAnimate = isNeedAnimate;
     }
 
     // 設置已紀錄顏色文本改顏色的延遲時間
@@ -424,16 +420,14 @@ export default class FlowChart {
         if (data && data.tipContent) node.data.tipContent = data.tipContent;
 
         if (data && data.colorSets) {
-            gsap.delayedCall(this.delayTime_changefColor, () => {
-                if (node.data.colorSets && Object.keys(node.data.colorSets).length > 0) {
-                    let colorSets: Array<any> = [];
-                    const settings = Object.keys(node.data.colorSets).map((key, index) => {
-                        const set = { index: index, fill: node.data.colorSets[key] };
-                        colorSets.push(set);
-                    });
-                    this.setNodeLabelColor(node, colorSets);
-                }
-            });
+            if (node.data.colorSets && Object.keys(node.data.colorSets).length > 0) {
+                let colorSets: Array<any> = [];
+                const settings = Object.keys(node.data.colorSets).map((key, index) => {
+                    const set = { index: index, fill: node.data.colorSets[key] };
+                    colorSets.push(set);
+                });
+                this.setNodeLabelColor(node, colorSets);
+            }
         }
 
         return node;
@@ -512,7 +506,7 @@ export default class FlowChart {
     }
 
     // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
-    public checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = DEFAULT_FONTSIZE) {
+    private checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = DEFAULT_FONTSIZE) {
         let newSizeW = nodeSize.width;
         let newSizeH = nodeSize.height;
         let newFontSize = fontSize;
@@ -558,10 +552,14 @@ export default class FlowChart {
     /**
      * @param portLabels (Array) 要設定文字的ports陣列
      * [
-     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
+     *      {
+     *          @param portId (string) 要顯示在哪個port，有12個，ex.'left'左中, 'left_top'左上, 'right_bottom'右下，依此類推
+     *          @param label (string) port上文字
+     *          @param fill (string)(optional) port文字顏色
+     *      }
      * ]
      */
-    public getPortLabelsSetting(portLabels: any = []) {
+    private getPortLabelsSetting(portLabels: any = []) {
         const groups = PORTS.groups;
         let items = PORTS.items;
         items.forEach((item, index) => {
@@ -588,7 +586,11 @@ export default class FlowChart {
      * @param cell 節點
      * @param portLabels (Array) 要設定文字的ports陣列
      * [
-     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
+     *      {
+     *          @param portId (string) 要顯示在哪個port，有12個，ex.'left'左中, 'left_top'左上, 'right_bottom'右下，依此類推
+     *          @param label (string) port上文字
+     *          @param fill (string)(optional) port文字顏色
+     *      }
      * ]
      */
     public setPortsLabel(cell: any = Node, portLabels: any = []) {
@@ -597,18 +599,13 @@ export default class FlowChart {
         });
     }
 
-    // 改變節點的文字、周圍文字
+    // 改變節點的文字
     /**
      * @param cell 節點
      * @param label 該節點本身的文字
-     * @param portLabels (Array) 要設定文字的ports陣列
-     * [
-     *      { portId: 'top_left', label: '2022/03/18 15:03:55 GMT', fill: 'red' }, ...
-     * ]
      */
-    public setNodeLabel(cell: any = Node, label: string | Array<any>, portLabels: any = []) {
+    public setNodeLabel(cell: any = Node, label: string = '') {
         if (cell.label) cell.label = label;
-        if (portLabels.length) this.setPortsLabel(cell, portLabels);
     }
 
     // 改變節點內文字顏色
@@ -616,21 +613,26 @@ export default class FlowChart {
      * @param cell 節點
      * @param settings (array)
      * [
-     *      { index: 0, fill: 'red' } 第一行文字轉為紅色
+     *      {
+     *          @param index (number) 對應文本行數注意從0開始,
+     *          @param fill (string) 第一行文字轉為紅色
+     *      }
      * ]
      */
     public setNodeLabelColor(cell: any = Node, settings: Array<any> = []) {
-        let a = this.graph.findViewByCell(cell);
-        let allTspan = a.find('tspan');
+        gsap.delayedCall(this.delayTime_changefColor, () => {
+            let a = this.graph.findViewByCell(cell);
+            let allTspan = a.find('tspan');
 
-        settings.forEach(setting => {
-            let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
-            if (!withoutEmptyTspan[setting.index]) console.error('no this line!');
-            else {
-                withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
-                if (cell.data.tipParent) cell.data.tipParent.data.tipColorSets[setting.index] = setting.fill;
-                cell.data.colorSets[setting.index] = setting.fill;
-            }
+            settings.forEach(setting => {
+                let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
+                if (!withoutEmptyTspan[setting.index]) console.error('no this line!');
+                else {
+                    withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
+                    if (cell.data.tipParent) cell.data.tipParent.data.tipColorSets[setting.index] = setting.fill;
+                    cell.data.colorSets[setting.index] = setting.fill;
+                }
+            });
         });
     }
 
@@ -643,6 +645,11 @@ export default class FlowChart {
     // #endregion
 
     // #region 動畫相關
+    // 設置是否動畫
+    public setIfNeedAnimate(isNeedAnimate: boolean = false) {
+        this.isNeedAnimate = isNeedAnimate;
+    }
+
     public flash(cell: Cell) {
         const cellView = this.graph.findViewByCell(cell);
         if (cellView) cellView.highlight();
@@ -660,8 +667,8 @@ export default class FlowChart {
             outgoing: true,
         });
         gsap.delayedCall(1, () => {
-            this.setNodeLabel(nowNode,
-                'My Label',
+            this.setNodeLabel(nowNode, 'My Label');
+            this.setPortsLabel(nowNode,
                 [
                     { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
                     { portId: 'bottom_right', label: 'success', fill: 'green' },
@@ -942,8 +949,8 @@ export default class FlowChart {
             if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
         }));
         this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            this.setNodeLabel(testContent,
-                'My Label',
+            this.setNodeLabel(testContent, 'My Label');
+            this.setPortsLabel(testContent,
                 [
                     { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
                     { portId: 'bottom_right', label: 'success', fill: 'green' },

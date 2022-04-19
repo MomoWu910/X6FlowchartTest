@@ -1,6 +1,7 @@
 # 流程圖工具使用教學
 
 先附上使用的X6套件的官方 [Document](https://x6.antv.vision/zh/docs/tutorial/about)
+以及另外有用到的套件 [判斷字串語系](https://openbase.com/js/franc)、[G2用於繪製圓餅圖](https://g2.antv.vision/zh/docs/manual/about-g2)
 
 ## 使用混淆化的程式碼
 
@@ -10,6 +11,7 @@
     npm run rollup
 ```
 
+---------------------------------------------------------
 ## 導入H5FC
 
 混淆化後會在 dist/ 拿到一個 **rollupBundle.umd.js** 檔案，在 index.html 中直接導入即可
@@ -33,15 +35,15 @@
      */
     let fc = new H5FC.FlowChart('container', { width: 1200, height: 800, theme: 'dark', isGrid: false });
 ```
-
+---------------------------------------------------------
 ## 畫流程圖相關功能
 ### 建立節點
 
-**drawNode()** function 可以建立一個節點並回傳該節點  
+**drawNode()** 可以建立一個節點並回傳該節點  
 * _shape_ 決定了節點的外觀，目前有建立幾個樣式在 H5FC.registerName 中，之後考慮開放自定義節點接口
 * _attr_ 為節點文本、port文本相關參數
 * _data_ 為自定義內容參數，未來擴充節點資料也盡量存在這裡面
-* 雖然節點會自動根據attr給入的文本長度改變大小，但還是建議自己加入'\n'來換行
+* 雖然節點會自動根據attr給入的文本長度改變大小，但還是建議自己加入'\n'來換行，避免單個節點過寬的情況
 * colorSets 格式 { index: fill } 中的index是對應文本行數，從0開始
 
 ```javascript
@@ -54,13 +56,14 @@
      * @param attr (obj, optional) 文本相關參數(不包含tip)
      * {
      *      @param label (string)(optional) 文字, 需注意換行要加"\n"
-     *      @param fill (string)(optional) 節點整段文字顏色，會被 data.colorSets 蓋掉
+     *      @param fill (string)(optional) 節點整段文字顏色，會被 data.colorSets 蓋掉 ex.'red', '#FF0000'
      *      @param fontSize (number)(optional) 文字大小，最小12，預設也是12
      *      @param portLabels (array<object>)(optional) 周圍port的文字
      *      [
      *          {
      *              @param portId (string) 要顯示在哪個port，有12個，ex.'left'左中, 'left_top'左上, 'right_bottom'右下，依此類推
      *              @param label (string) port上文字
+     *              @param fill (string)(optional) port文字顏色 ex.'red', '#FF0000'
      *          }
      *      ]
      * },  
@@ -104,7 +107,7 @@
 
 ### 建立邊
 
-**drawEdge()** function 可以建立邊並回傳該邊
+**drawEdge()** 可以建立邊並回傳該邊
 * _source_ 跟 _target_ 為起點跟終點，可以傳入三種格式
   * **{ x, y }** 基本的座標物件
   * **Node節點物件** drawNode()回傳的那個
@@ -153,4 +156,116 @@
 
 
 
-###
+### 改變節點的文字
+
+**setNodeLabel()** 可以在建立節點後改變該節點的文字
+
+```javascript
+    /**
+     * @param cell 節點
+     * @param label 該節點本身的文字
+     */
+    setNodeLabel(cell: any = Node, label: string = '')
+```
+```javascript
+    // 範例
+    fc.setNodeLabel(node, 'Changed label');
+```
+
+上面範例呈現的效果如下圖 (會從左變為右) 
+![](../res/mdAssets/setNodeLabel_example.png)
+
+
+
+### 改變節點port文字
+
+**setPortsLabel()** 可以在建立節點後改變該節點 port 的文字
+
+```javascript
+    /**
+     * @param cell 節點
+     * @param portLabels (Array) 要設定文字的ports陣列
+     * [
+     *      {
+     *          @param portId (string) 要顯示在哪個port，有12個，ex.'left'左中, 'left_top'左上, 'right_bottom'右下，依此類推
+     *          @param label (string) port上文字
+     *          @param fill (string)(optional) port文字顏色 ex.'red', '#FF0000'
+     *      }
+     * ]
+     */
+    setPortsLabel(cell: any = Node, portLabels: Array<any> = [])
+```
+```javascript
+    // 範例
+    fc.setPortsLabel(node, [
+        { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+        { portId: 'bottom_right', label: 'not yet', fill: 'red' },
+    ]);
+```
+
+上面範例呈現的效果如下圖 (會從左變為右) 
+![](../res/mdAssets/setPortsLabel_example.png)
+
+
+
+### 改變節點內各行文字顏色
+
+**setNodeLabelColor()** 可以在建立節點後改變該節點文字各行的顏色
+
+* 如果在 drawNode() 時有給 _colorSets_ 參數，就不用另外呼叫這個函式
+
+```javascript
+    /**
+     * @param cell 節點
+     * @param settings (array)
+     * [
+     *      {
+     *          @param index (number) 對應文本行數注意從0開始,
+     *          @param fill (string) 欲改變之顏色 ex.'red', '#FF0000'
+     *      }
+     * ]
+     */
+    setNodeLabelColor(cell: any = Node, settings: Array<any> = [])
+```
+```javascript
+    // 範例
+    fc.setNodeLabelColor(node, [
+        { index: 0, fill: 'green' },
+        { index: 1, fill: 'red' },
+        { index: 2, fill: 'yellow' },
+    ]);
+```
+
+上面範例呈現的效果如下圖 (會從左變為右) 
+![](../res/mdAssets/setNodeLabelColor_example.png)
+
+---------------------------------------------------------
+## 其他功能
+### 清除畫布
+**clearGraph()** 可以在 _建立畫布_ 後呼叫，清空畫布所有物件
+
+### 放大/縮小畫布
+**zoomIn()** / **zoomOut()** 可以在 _建立畫布_ 後呼叫，放大/縮小畫布
+
+### 隱藏/顯示隔線
+**hideGrid()** / **showGrid()** 可以在 _建立畫布_ 後呼叫，隱藏/顯示隔線
+
+-----------------------------------------------------------------
+## TODO以及未來規劃
+### [未完成]
+* 動畫相關功能
+    * 主要 function 在 **startNodeAnimate()** ，功能為從給定的節點開始按路徑逐個節點、邊高亮
+    * 但目前sendToken() 物件有顯示問題，預估跟套件底層寫法有關，不易排查，故先擱置
+    * 日後也考慮換個做法，不一定用X6給的方法
+
+* config 導入導出 JSON 功能
+    * 主要 function 在 **drawFromConfig()** ，功能為依照給入的特定格式撰寫的 config 檔建立畫面
+    * 之前有完成一版，包含導入導出功能，但由於後來使用習慣偏向直接以 drawNode() 直接繪製，加上後續對於資料格式也有調整，故此功能也暫時擱置，之後有機會再同步新的資料格式
+
+### [優化]
+* 目前已知需要優化的點為，初次繪製大量節點時，會繪製太久
+
+### [未來規劃]
+* 本工具之後會與自動化測試整合，詳細的資料連動、存儲方式還需研究
+* 之前有導入 G2 這個套件，主要用於繪製圓餅圖，如果後續有需要加入至流程圖，連動做法也需要再研究
+* X6 本身就有服務流程圖編輯器的相關做法，所以如果之後有要做相關開發也能直接支援
