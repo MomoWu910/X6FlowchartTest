@@ -15,6 +15,7 @@ import { franc } from 'franc';
 
 const GRAPH_NAME = 'code-graph-container';
 const BACK_TO_PREPAGE_BTN_NAME = 'backToPrePage';
+const BACK_TO_PREPAGE_BTN_NAME_LEFTER = 'backToPrePageLefter';
 const ZOOM_IN_BTN_NAME = 'zoomIn';
 const ZOOM_OUT_BTN_NAME = 'zoomOut';
 const EDIT_TEXT_BTN_NAME = 'edit';
@@ -59,6 +60,8 @@ export default class FlowChart {
     public isNeedAnimate: boolean = false;
     public nowMouseOnNode: any = null;
     public delayTime_changefColor = DEFAULT_CHANGE_COLOR_DELAY;
+    public isEditMode: boolean = false;
+    public backBtn: any = null
 
     /**
      * @param canvasId (string) 用於套入canvas的<div>的id
@@ -73,13 +76,17 @@ export default class FlowChart {
     constructor(canvasId: string, option: any = {}) {
 
         this.initContainer(canvasId)
-        // this.initConfigs([                  // 初始化config檔
-        //     overviewConfig,
-        //     roomGameBeforeConfig
-        // ]);
+        this.initConfigs([                  // 初始化config檔
+            overviewConfig,
+            roomGameBeforeConfig
+        ]);
         this.initGraph(option);                   // 初始化畫布
         this.initEvent();                   // 初始化鍵盤、滑鼠事件
         this.initGraphNode();               // 初始化各種節點設定
+        this.initGraphEdge();               // 初始化各種邊設定
+
+        this.initBackBtn(canvasId);                 // 初始化上一頁按鈕
+        this.setBackBtnVisible(false);              // 預設隱藏
 
     }
 
@@ -334,6 +341,48 @@ export default class FlowChart {
     public setDelayTime_changeColor(delayTime: number = DEFAULT_CHANGE_COLOR_DELAY) {
         this.delayTime_changefColor = delayTime;
     }
+
+    // 設置節點點擊事件callback
+    public setNodeClickEvenCallback(node: Node, callback: Function = () => { }) {
+        if (node && node.data) {
+            node.data.clickCallback = callback;
+        }
+    }
+
+    // 設置邊點擊事件callback
+    public setEdgeClickEvenCallback(edge: Edge, callback: Function = () => { }) {
+        if (edge && edge.data) {
+            edge.data.clickCallback = callback;
+        }
+    }
+
+    // 設定是否為編輯模式
+    public setEditMode(enabled: boolean = false) {
+        this.isEditMode = enabled;
+    }
+
+    // 設定上一頁按鈕visible
+    public setBackBtnVisible(visible: boolean = true) {
+        if (!this.backBtn) {
+            console.warn('/// no back btn');
+            return;
+        }
+
+        if (visible) {
+            this.backBtn.removeAttribute("hidden");
+        } else {
+            this.backBtn.setAttribute("hidden", "hidden");
+        }
+    }
+
+    // 設定上一頁按鈕callback
+    public setBackBtnCallback(callback: Function = () => { }) {
+        if (!this.backBtn) {
+            console.warn('/// no back btn');
+            return;
+        }
+        this.backBtn.addEventListener("click", callback);
+    }
     // #endregion
 
     // #region 畫圖相關
@@ -468,7 +517,7 @@ export default class FlowChart {
             sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkH ? 'right' : 'left') };
             targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkH ? 'left' : 'right') };
         }
-        if (direction === 'l' || direction === 'L') {
+        if (direction === 'l' || direction === 'L' || direction === 'c' || direction === 'C') {
             sourceCheck = { cell: source.cell, port: source.port };
             targetCheck = { cell: target.cell, port: target.port };
         }
@@ -639,15 +688,19 @@ export default class FlowChart {
     // 清除畫布
     public clearGraph() {
         this.graph.clearCells();
-        this.prePages[this.nowPage.level] = this.nowPage.name;
-        this.nowPage = emptyPage;
+        if (this.isEditMode) {
+            this.prePages[this.nowPage.level] = this.nowPage.name;
+            this.nowPage = emptyPage;
+        }
     }
     // #endregion
 
     // #region 動畫相關
     // 設置是否動畫
     public setIfNeedAnimate(isNeedAnimate: boolean = false) {
-        this.isNeedAnimate = isNeedAnimate;
+        // this.isNeedAnimate = isNeedAnimate;
+        // 暫時沒有動畫需求·一律先關閉
+        this.isNeedAnimate = false;
     }
 
     public flash(cell: Cell) {
@@ -793,12 +846,14 @@ export default class FlowChart {
     // 快捷键与事件
     public initEvent() {
         this.graph.on('node:mousedown', ({ cell }) => {
-            if (this.isNeedAnimate) this.startNodeAnimate(cell);
+            // console.log('node:mousedown: ', cell)
             if (cell && cell.data.changeToFlowChart) this.changeFlowChart(cell.data.changeToFlowChart);
-            this.setNodeLabelColor(cell, [
-                { index: 4, fill: 'green' },
-                { index: 5, fill: 'green' },
-            ]);
+            if (cell && cell.data.clickCallback) cell.data.clickCallback();
+        })
+
+        this.graph.on('edge:mousedown', ({ edge }) => {
+            // console.log('edge:mousedown: ', edge)
+            if (edge && edge.data.clickCallback) edge.data.clickCallback();
         })
 
         this.graph.on('node:mouseenter', ({ cell }) => {
@@ -861,7 +916,7 @@ export default class FlowChart {
             });
         })
 
-        let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME);
+        let backBtn = document.getElementById(BACK_TO_PREPAGE_BTN_NAME_LEFTER);
         if (backBtn) backBtn.addEventListener('click', () => { this.backToPrePage(); });
 
         let zoomInBtn = document.getElementById(ZOOM_IN_BTN_NAME);
@@ -912,69 +967,58 @@ export default class FlowChart {
     public timelineTest(testContent: any) {
 
         this.timeline = gsap.timeline();
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
-                { index: 0, fill: 'green' },
-                { index: 1, fill: 'green' },
-                { index: 2, fill: 'green' },
-                { index: 3, fill: 'green' },
-                { index: 4, fill: 'red' },
-            ]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
-                { index: 4, fill: 'green' },
-                { index: 5, fill: 'green' },
-            ]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 6, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 7, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 9, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 10, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
-        }));
-        this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
-            this.setNodeLabel(testContent, 'My Label');
-            this.setPortsLabel(testContent,
-                [
-                    { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
-                    { portId: 'bottom_right', label: 'success', fill: 'green' },
-                ]);
-        }));
-        this.timeline.add(() => { this.timeline ?.kill(); });
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+        //         { index: 0, fill: 'green' },
+        //         { index: 1, fill: 'green' },
+        //         { index: 2, fill: 'green' },
+        //         { index: 3, fill: 'green' },
+        //         { index: 4, fill: 'red' },
+        //     ]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [
+        //         { index: 4, fill: 'green' },
+        //         { index: 5, fill: 'green' },
+        //     ]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 6, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 7, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 8, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 9, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 10, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     if (this.tipDialog) this.setNodeLabelColor(this.tipDialog, [{ index: 11, fill: 'green' },]);
+        // }));
+        // this.timeline.add(gsap.delayedCall(TIP_TEXT_DELAYTIME, () => {
+        //     this.setNodeLabel(testContent, 'My Label');
+        //     this.setPortsLabel(testContent,
+        //         [
+        //             { portId: 'top_left', label: '2022/03/18 15:03:55 GMT' },
+        //             { portId: 'bottom_right', label: 'success', fill: 'green' },
+        //         ]);
+        // }));
+        // this.timeline.add(() => { this.timeline ?.kill(); });
     }
 
     // 初始化图形定義
     /**
      * 自定義節點
-     * port: 上下左右四個連接點
-     * 圖形包含矩形、圓形、菱形
-     * 之後用法 ex.
-     * graph.addNode({
-            x: 100,
-            y: 60,
-            shape: 'custom-rect',
-            text: 'My Custom Rect',
-        });
      */
     public initGraphNode() {
-
-
         // tip，圓角矩形，黑，白匡
         Graph.registerNode(
             registerName.tipDialog,
@@ -1246,7 +1290,12 @@ export default class FlowChart {
             },
             true,
         );
+    }
 
+    /**
+     * 自定義邊
+     */
+    public initGraphEdge() {
         // 一般線
         Graph.registerEdge(
             registerName.normalEdge,
@@ -1292,6 +1341,114 @@ export default class FlowChart {
                 zIndex: zIndex.EDGE
             }
         );
+
+        // 轉兩次彎ㄈ型線，右彎
+        Graph.registerEdge(
+            registerName.cRightEdge,
+            {
+                inherit: 'edge',
+                router: {
+                    name: 'oneSide',
+                    args: { side: 'right' },
+                },
+                attrs: {
+                    line: {
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                        strokeWidth: 2,
+                        targetMarker: {
+                            name: 'block',
+                            width: DEFAULT_FONTSIZE,
+                            height: 8,
+                        },
+                    },
+                },
+                zIndex: zIndex.EDGE
+            }
+        );
+
+        // 轉兩次彎ㄈ型線，左彎
+        Graph.registerEdge(
+            registerName.cLeftEdge,
+            {
+                inherit: 'edge',
+                router: {
+                    name: 'oneSide',
+                    args: { side: 'left' },
+                },
+                attrs: {
+                    line: {
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                        strokeWidth: 2,
+                        targetMarker: {
+                            name: 'block',
+                            width: DEFAULT_FONTSIZE,
+                            height: 8,
+                        },
+                    },
+                },
+                zIndex: zIndex.EDGE
+            }
+        );
+
+        // 轉兩次彎ㄈ型線，上彎
+        Graph.registerEdge(
+            registerName.cTopEdge,
+            {
+                inherit: 'edge',
+                router: {
+                    name: 'oneSide',
+                    args: { side: 'top' },
+                },
+                attrs: {
+                    line: {
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                        strokeWidth: 2,
+                        targetMarker: {
+                            name: 'block',
+                            width: DEFAULT_FONTSIZE,
+                            height: 8,
+                        },
+                    },
+                },
+                zIndex: zIndex.EDGE
+            }
+        );
+
+        // 轉兩次彎ㄈ型線，下彎
+        Graph.registerEdge(
+            registerName.cBottomEdge,
+            {
+                inherit: 'edge',
+                router: {
+                    name: 'oneSide',
+                    args: { side: 'bottom' },
+                },
+                attrs: {
+                    line: {
+                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                        strokeWidth: 2,
+                        targetMarker: {
+                            name: 'block',
+                            width: DEFAULT_FONTSIZE,
+                            height: 8,
+                        },
+                    },
+                },
+                zIndex: zIndex.EDGE
+            }
+        );
+
+    }
+
+    // 初始化畫布左上返回上一頁按鈕
+    public initBackBtn(canvasId: string) {
+        if (!canvasId) return;
+        const container = document.getElementById(canvasId)!;
+        const backBtn = document.createElement('button');
+        backBtn.id = BACK_TO_PREPAGE_BTN_NAME;
+        backBtn.textContent = 'back';
+        container.appendChild(backBtn);
+        this.backBtn = backBtn;
     }
 
     // 初始化config檔

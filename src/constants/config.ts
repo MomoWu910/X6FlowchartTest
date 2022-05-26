@@ -1,19 +1,27 @@
 // #region cssConfig
 export const cssConfig =
     `
-#code-graph-container {
-    width: 100%;
-    height: 100%;
-}
-.x6-tooltip {
-    border: 1px solid #e2e2e2;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #545454;
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 10px 8px;
-    box-shadow: rgb(174, 174, 174) 0px 0px 10px;
-}
+    #code-graph-container {
+        width: 100%;
+        height: 100%;
+    }
+    #stencil {
+        width: 180px;
+        height: 100%;
+        position: fixed;
+        z-index: 1;
+    }
+    #graph-container {
+        width: 1200px;
+        height: 800px;
+    }
+    #container #backToPrePage{
+        width: 50px;
+        height: 25px;
+        position: fixed;
+        z-index: 1;
+        margin: 10px;
+    }
 `;
 // #endregion
 
@@ -49,6 +57,10 @@ export const zIndex = {
  * 
  * @param normalEdge 一般直線，不轉彎
  * @param lEdge 轉一次彎直線
+ * @param cRightEdge 轉兩次彎ㄈ型線，右彎
+ * @param cLeftEdge 轉兩次彎ㄈ型線，左彎
+ * @param cTopEdge 轉兩次彎ㄈ型線，上彎
+ * @param cBottomEdge 轉兩次彎ㄈ型線，下彎
  */
 export const registerName = {
     tipDialog: 'tipDialog-rect',
@@ -70,6 +82,10 @@ export const registerName = {
     // edge
     normalEdge: 'normal-edge',
     lEdge: 'lEdge',
+    cRightEdge: 'cRightEdge',
+    cLeftEdge: 'cLeftEdge',
+    cTopEdge: 'cTopEdge',
+    cBottomEdge: 'cBottomEdge',
 }
 
 

@@ -112,7 +112,10 @@
   * **{ x, y }** 基本的座標物件
   * **Node節點物件** drawNode()回傳的那個
   * **{ cell, port }** 有帶入指定的port的物件
-* _shape_ 決定了邊的樣式，目前有建立兩個樣式在 H5FC.registerName 中，直線normalEdge 及轉角型lEdge
+* _shape_ 決定了邊的樣式，目前有建立幾種樣式在 H5FC.registerName 中
+    * 直線 normalEdge
+    * 轉一次彎型 lEdge
+    * 轉兩次彎型 cRightEdge、cLeftEdge、cTopEdge、cBottomEdge
 * _data_ 如果邊上想要有文字就帶入 label 中
 
 ```javascript
@@ -153,6 +156,18 @@
 
 上面範例呈現的效果如下圖  
 ![](../res/mdAssets/drawEdge_example2.png)
+
+
+```javascript
+    // 範例
+    let node1 = { cell: nodeArray[i], port: 'right' };
+    let node2 = { cell: nodeArray[i + 1], port: 'right' };
+
+    let edge = x6fc.drawEdge( node1, node2, 'c', registerName.cRightEdge, { label: 'Y' });
+```
+
+上面範例呈現的效果如下圖  
+![](../res/mdAssets/drawEdge_example3.png)
 
 
 
@@ -249,6 +264,12 @@
 
 ### 隱藏/顯示隔線
 **hideGrid()** / **showGrid()** 可以在 _建立畫布_ 後呼叫，隱藏/顯示隔線
+
+### 設定上一頁按鈕visible
+**setBackBtnVisible(visible)** 左上有一個返回上一頁按鈕，帶入 true/false 來 顯示/隱藏
+
+### 設定上一頁按鈕callback
+**setBackBtnCallback(callback)** 左上有一個返回上一頁按鈕，預設點擊無效果，帶入自定義 callback 函式
 
 -----------------------------------------------------------------
 ## TODO以及未來規劃

@@ -2,17 +2,22 @@ import { Graph, Shape, Addon } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig } from './constants/config';
 
+
+const CONTAINER_NAME = 'editer-container';
+const STENCIL_NAME = 'stencil';
+const GRAPH_NAME = 'graph-container';
+
 /* html css 相關樣式建立
 *   stencilContainer: 左側面板
 *   graphContainer: 右側畫板
 */
 const preWork = () => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
-    const container = document.getElementById('container')!;
+    const container = document.getElementById(CONTAINER_NAME)!;
     const stencilContainer = document.createElement('div');
-    stencilContainer.id = 'stencil';
+    stencilContainer.id = STENCIL_NAME;
     const graphContainer = document.createElement('div');
-    graphContainer.id = 'graph-container';
+    graphContainer.id = GRAPH_NAME;
     container.appendChild(stencilContainer);
     container.appendChild(graphContainer);
 
@@ -36,7 +41,7 @@ export default class Demo {
     // #region 初始化画布
     public initGraph() {
         const graph = new Graph({
-            container: document.getElementById('graph-container')!, // 画布的容器
+            container: document.getElementById(GRAPH_NAME)!, // 画布的容器
             background: { color: '#2A2A2A' },                       // 背景
             grid: {                                                 // 网格
                 type: 'doubleMesh',                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
@@ -167,7 +172,7 @@ export default class Demo {
                 rowHeight: 55,
             },
         })
-        document.getElementById('stencil')!.appendChild(stencil.container);
+        document.getElementById(STENCIL_NAME)!.appendChild(stencil.container);
         this.stencil = stencil;
     }
     // #endregion
@@ -235,14 +240,14 @@ export default class Demo {
             }
         }
         this.graph.on('node:mouseenter', () => {
-            const container = document.getElementById('graph-container')!
+            const container = document.getElementById(GRAPH_NAME)!
             const ports = container.querySelectorAll(
                 '.x6-port-body',
             ) as NodeListOf<SVGElement>
             showPorts(ports, true)
         })
         this.graph.on('node:mouseleave', () => {
-            const container = document.getElementById('graph-container')!
+            const container = document.getElementById(GRAPH_NAME)!
             const ports = container.querySelectorAll(
                 '.x6-port-body',
             ) as NodeListOf<SVGElement>
