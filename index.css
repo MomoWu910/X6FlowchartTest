@@ -33,15 +33,15 @@ body {
     z-index: 1;
 }
 
-#chartContainer {
-    position: relative;
-    top: 20%;
-    left: 10%;
+#editer-container {
+    display: flex;
+    position: fixed;
     border: 0px solid #dfe3e8;
-    z-index: 1;
-    background-color: black;
+    z-index: 3;
+    top: -3px;
+    left: -3px;
 }
 
-button {
+#lefter button {
     width: 98%;
 }

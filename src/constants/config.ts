@@ -1,19 +1,23 @@
 // #region cssConfig
 export const cssConfig =
     `
-    #code-graph-container {
-        width: 100%;
-        height: 100%;
-    }
     #stencil {
-        width: 180px;
+        width: 200px;
         height: 100%;
         position: fixed;
         z-index: 1;
+        top: -2px;
+    }
+    #toolbar {
+        width: calc(100% - 200px);
+        height: 40px;
+        position: fixed;
+        z-index: 2;
+        left: 200px;
     }
     #graph-container {
-        width: 1200px;
-        height: 800px;
+        width: 1600px;
+        height: 1200px;
     }
     #container #backToPrePage{
         width: 50px;
@@ -21,6 +25,13 @@ export const cssConfig =
         position: fixed;
         z-index: 1;
         margin: 10px;
+    }
+    #toolbar button{
+        left: 210px;
+        width: 50px;
+        height: 25px;
+        z-index: 3;
+        margin: 7.5px;
     }
 `;
 // #endregion

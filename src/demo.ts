@@ -1,19 +1,36 @@
-import { Graph, Shape, Addon } from '@antv/x6';
+import { Graph, Node, Edge, Shape, Addon } from '@antv/x6';
 import { insertCss } from 'insert-css';
-import { cssConfig } from './constants/config';
+import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
+import _ from 'lodash';
 
+import popupRemaining from '../res/nodeAssets/popupRemaining.png';
+import popupReturnGame from '../res/nodeAssets/popupReturnGame.png';
+import popupConnectFailed from '../res/nodeAssets/popupConnectFailed.png';
+import { ImageKey } from './constants/assets';
+import { franc } from 'franc';
 
 const CONTAINER_NAME = 'editer-container';
 const STENCIL_NAME = 'stencil';
 const GRAPH_NAME = 'graph-container';
 
+const UNDO_BTN_NAME_EDITER = 'undoEditer';
+const REDO_BTN_NAME_EDITER = 'redoEditer';
+const ZOOMIN_BTN_NAME_EDITER = 'zoomInEditer';
+const ZOOMOUT_BTN_NAME_EDITER = 'zoomOutEditer';
+const SAVE_BTN_NAME_EDITER = 'saveEditer';
+
+const DEFAULT_RECT_WIDTH = 160;
+const DEFAULT_RECT_HEIGHT = 80;
+const DEFAULT_FONTSIZE = 12;
+
+
 /* html css 相關樣式建立
 *   stencilContainer: 左側面板
 *   graphContainer: 右側畫板
 */
-const preWork = () => {
+const preWork = (canvasId: string) => {
     // 这里协助演示的代码，在实际项目中根据实际情况进行调整
-    const container = document.getElementById(CONTAINER_NAME)!;
+    const container = document.getElementById(canvasId)!;
     const stencilContainer = document.createElement('div');
     stencilContainer.id = STENCIL_NAME;
     const graphContainer = document.createElement('div');
@@ -28,15 +45,182 @@ export default class Demo {
     public graph: any;
     public stencil: any;
 
-    constructor() {
-        preWork();                          // 設定css樣式
-        this.initGraph();                   // 初始化畫布
-        this.initStencil();                 // 初始化左側面板
-        this.initEvent();                   // 初始化鍵盤、滑鼠事件
-        this.initGraphNode();               // 初始化各種節點設定
-        this.initStencilBasicNode();        // 建立面板上基礎流程圖節點
-        this.initStencilSpecialNode();      // 建立面板上系統設計圖節點
+    public undoBtn: any = null;
+    public redoBtn: any = null;
+    public zoomInBtn: any = null;
+    public zoomOutBtn: any = null;
+    public saveBtn: any = null;
+
+    constructor(canvasId: string) {
+        preWork(canvasId);                          // 設定css樣式
+        this.initGraph();                           // 初始化畫布
+        this.initStencil();                         // 初始化左側面板
+        this.initGraphNode();                       // 初始化各種節點設定
+        this.initStencilRectNode();                 // 建立面板上方形元件節點
+        this.initStencilPolygonNode();              // 建立面板上菱形元件節點
+        this.initStencilSpecialNode();              // 建立面板上自定義圖片節點
+
+        this.initToolBar(canvasId);                 // 初始化上一頁按鈕
+
+        this.initEvent();                           // 初始化鍵盤、滑鼠事件
+        this.initToolBarEvent();                    // 初始化工具列按鈕事件
     }
+
+    // #region JSON相關
+    // 當前畫布所有節點轉成config格式，並回傳
+    public nodesToJSON(nodes: Node[]) {
+        let nodesJSON: any[] = [];
+        nodes.map((node) => {
+            let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
+            let posX = node.position().x;
+            let posY = node.position().y;
+            let json = `{
+                data: {
+                    seat: "${node.data.seat ? node.data.seat : ''}",
+                    position: "{ x: ${posX}, y: ${posY} }",
+                    name: "${node.data.name ? node.data.name : ''}",
+                    changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
+                    size: ${node.data.size ? JSON.stringify(node.data.size) : null},
+                    tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
+                },
+                shape: "${node.shape}",
+                attr: {
+                    label: ${label}
+                }
+            }`;
+            nodesJSON.push(json);
+        })
+        return nodesJSON;
+    }
+
+    // 當前畫布所有邊轉成config格式，並回傳
+    public edgesToJSON(edges: Edge[]) {
+        let edgesJSON: any = {};
+        let vFlows: any[] = [], vFlow: any[] = [];
+        let hFlows: any[] = [], hFlow: any[] = [];
+        let lFlows: any[] = [], lFlow: any[] = [];
+
+        edges.map((edge, index) => {
+            const direction = edge.data.direction;
+
+            // 先暫定這樣寫，風險在於edges萬一不是按照我的畫線順序排序的話就會出錯
+            // 先檢查是否已經換行或換列，是的話就push整個array給flows，並清空
+            // 接著如果沒有起點座標就push，有的話就檢查終點座標沒有就push
+            if (direction === 'v' || direction === 'V') {
+                if (vFlow.length > 0) {
+                    let nowSeat = vFlow[vFlow.length - 1].split('_')[0];
+                    let nextSeat = edge.data.sourceSeat.split('_')[0];
+                    if (nowSeat !== nextSeat) {
+                        vFlows.push(vFlow);
+                        vFlow = [];
+                    }
+                }
+
+                if (vFlow.find(e => e === edge.data.sourceSeat) === undefined) vFlow.push(edge.data.sourceSeat);
+                if (vFlow.find(e => e === edge.data.targetSeat) === undefined) vFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'h' || direction === 'H') {
+                if (hFlow.length > 0) {
+                    let nowSeat = hFlow[hFlow.length - 1].split('_')[1];
+                    let nextSeat = edge.data.sourceSeat.split('_')[1];
+                    if (nowSeat !== nextSeat) {
+                        hFlows.push(hFlow);
+                        hFlow = [];
+                    }
+                }
+
+                if (hFlow.find(e => e === edge.data.sourceSeat) === undefined) hFlow.push(edge.data.sourceSeat);
+                if (hFlow.find(e => e === edge.data.targetSeat) === undefined) hFlow.push(edge.data.targetSeat);
+            }
+
+            if (direction === 'l' || direction === 'L') {
+                lFlow = [edge.data.sourceSeat, edge.data.targetSeat, edge.data.sourcePort, edge.data.targetPort];
+                lFlows.push(lFlow);
+                lFlow = [];
+            }
+
+            if (index === edges.length - 1) {
+                if (vFlow) vFlows.push(vFlow);
+                if (hFlow) hFlows.push(hFlow);
+            }
+
+        });
+
+        edgesJSON = { vFlows: vFlows, hFlows: hFlows, lFlows: lFlows };
+        return edgesJSON;
+    }
+
+    // 根據編輯過的畫布撰寫一個新版config
+    public getNewVersionConfig() {
+        const nodes = this.graph.getNodes();
+        const edges = this.graph.getEdges();
+        const nodesJSON = this.nodesToJSON(nodes);
+        const edgesJSON = this.edgesToJSON(edges);
+
+        // 版號都先幫他加一版
+        // const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
+
+        // const newConfig = `
+        // export const ${this.nowPage.name} = {
+        //     name: "${this.nowPage.name}",
+        //     level: ${this.nowPage.level},
+        //     version: "${this.checkIfEdited() ? newVersion : this.nowPage.version}",
+        //     nodes: [${nodesJSON}],
+        //     vFlows: ${JSON.stringify(edgesJSON.vFlows)},
+        //     hFlows: ${JSON.stringify(edgesJSON.hFlows)},
+        //     lFlows: ${JSON.stringify(edgesJSON.lFlows)},
+        // }`
+        // return newConfig;
+    }
+
+    // 檢查是否編輯過
+    // public checkIfEdited() {
+    //     const editedJSON = this.graph.toJSON();
+    //     const originJSON = this.saveOriginJSON[this.nowPage.name];
+    //     console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
+    //     return !_.isEqual(editedJSON, originJSON);
+    // }
+    // #endregion
+
+    // #region 上排功能相關
+
+    // zoom in
+    public zoomIn(value: number = 0.1) {
+        this.graph.zoom(value);
+    }
+
+    // zoom out
+    public zoomOut(value: number = -0.1) {
+        this.graph.zoom(value);
+    }
+    // 初始化畫布左上返回上一頁按鈕
+    public initToolBar(canvasId: string) {
+        if (!canvasId) return;
+        const editContainer = document.getElementById(canvasId)!;
+
+        const toolbar = document.createElement('div');
+        toolbar.id = 'toolbar';
+        toolbar.style.backgroundColor = 'white';
+        editContainer.appendChild(toolbar);
+
+        this.undoBtn = this.createBtn('上一步', UNDO_BTN_NAME_EDITER, toolbar);
+        this.redoBtn = this.createBtn('下一步', REDO_BTN_NAME_EDITER, toolbar);
+        this.zoomInBtn = this.createBtn('放大', ZOOMIN_BTN_NAME_EDITER, toolbar);
+        this.zoomOutBtn = this.createBtn('縮小', ZOOMOUT_BTN_NAME_EDITER, toolbar);
+        this.saveBtn = this.createBtn('存檔', SAVE_BTN_NAME_EDITER, toolbar);
+    }
+
+    // 建立按鈕
+    private createBtn(textContent: string = '', id: string = 'noNameBtn', parent: any = null) {
+        const btn = document.createElement('button');
+        btn.id = id;
+        btn.textContent = textContent;
+        if (parent) parent.appendChild(btn);
+
+        return btn;
+    }
+    // #endregion
 
     // #region 初始化画布
     public initGraph() {
@@ -45,7 +229,7 @@ export default class Demo {
             background: { color: '#2A2A2A' },                       // 背景
             grid: {                                                 // 网格
                 type: 'doubleMesh',                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
-                visible: true,
+                visible: false,
                 args: [                                             // doubleMesh 才要分主次
                     {
                         color: '#6e6e6e',                           // 主网格线颜色
@@ -67,7 +251,7 @@ export default class Demo {
             },
             connecting: {                                           // 连线规则
                 router: {                                           // 路由将边的路径点 vertices 做进一步转换处理，并在必要时添加额外的点
-                    name: 'orth',                              // 智能正交路由，由水平或垂直的正交线段组成，并自动避开路径上的其他节点
+                    name: 'manhattan',
                 },
                 connector: {                                        // 连接器
                     name: 'normal',                                // 圆角连接器，将起点、路由点、终点通过直线按顺序连接，并在线段连接处通过圆弧连接
@@ -144,36 +328,101 @@ export default class Demo {
     }
     // #endregion
 
-    // #region 初始化 stencil
+    // #region 初始化左側面板設定
     public initStencil() {
         const stencil = new Addon.Stencil({
-            title: '流程图',
+            title: '流程图元件',
             target: this.graph,                                     // 目标画布
-            stencilGraphWidth: 200,
-            stencilGraphHeight: 180,
+            stencilGraphWidth: 400,
+            stencilGraphHeight: 400,
             collapsable: true,                                      // 是否显示全局折叠/展开按钮
             groups: [
                 {
-                    title: '基础流程图',
+                    title: '方形元件',
                     name: 'group1',
                 },
                 {
-                    title: '系统设计图',
+                    title: '菱形元件',
                     name: 'group2',
-                    graphHeight: 250,
-                    layoutOptions: {
-                        rowHeight: 70,
-                    },
+                    graphHeight: 300,
                 },
+                {
+                    title: '自定義圖片元件',
+                    name: 'group3',
+                    graphHeight: 300,
+                }
             ],
             layoutOptions: {                                        // 布局选项
-                columns: 2,
-                columnWidth: 80,
-                rowHeight: 55,
+                columns: 1,
+                columnWidth: DEFAULT_RECT_WIDTH + 10,
+                rowHeight: DEFAULT_RECT_HEIGHT + 10,
+                resizeToFit: true,
             },
+            getDropNode(node) {
+                let clone = node.clone();
+                clone.attr('text/text', '');
+                return clone;
+            }
         })
         document.getElementById(STENCIL_NAME)!.appendChild(stencil.container);
         this.stencil = stencil;
+    }
+    // #endregion
+
+    // #region 初始化左側面板上元件
+    // 方形元件節點
+    public initStencilRectNode() {
+        const r1 = this.graph.createNode({
+            shape: registerName.startOrEnd,
+            label: '主線開頭或結尾',
+        });
+        const r2 = this.graph.createNode({
+            shape: registerName.changeToOtherFlowChart,
+            label: '切換到別張流程圖',
+        });
+        const r3 = this.graph.createNode({
+            shape: registerName.stopFlowChart,
+            label: '支線結尾',
+        });
+        const r4 = this.graph.createNode({
+            shape: registerName.process,
+            label: '過程',
+        });
+        this.stencil.load([r1, r2, r3, r4], 'group1');
+    }
+
+    // 菱形元件節點
+    public initStencilPolygonNode() {
+        const r1 = this.graph.createNode({
+            shape: registerName.yesOrNo,
+            label: '叉路點',
+        });
+        const r2 = this.graph.createNode({
+            shape: registerName.yesOrNo_API,
+            label: 'API相關的叉路點',
+        });
+        const r3 = this.graph.createNode({
+            shape: registerName.yesOrNo_success,
+            label: '順利的流程上面的叉路點',
+        });
+        this.stencil.load([r1, r2, r3], 'group2');
+    }
+
+    // 自定義圖片元件節點
+    public initStencilSpecialNode() {
+        const r1 = this.graph.createNode({
+            shape: registerName.popupRemaining,
+            // label: '数据',
+        });
+        const r2 = this.graph.createNode({
+            shape: registerName.popupReturnGame,
+            // label: '连接',
+        });
+        const r3 = this.graph.createNode({
+            shape: registerName.popupConnectFailed,
+            // label: '连接',
+        });
+        this.stencil.load([r1, r2, r3], 'group3');
     }
     // #endregion
 
@@ -255,9 +504,10 @@ export default class Demo {
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {
-            const isNode = cell.isNode()
-            const name = cell.isNode() ? 'node-editor' : 'edge-editor'
-            cell.removeTool(name)
+            this.graph.disableHistory();
+            const isNode = cell.isNode();
+            const name = cell.isNode() ? 'node-editor' : 'edge-editor';
+            cell.removeTool(name);
             cell.addTools({
                 name,
                 args: {
@@ -266,311 +516,492 @@ export default class Demo {
                         backgroundColor: isNode ? '#EFF4FF' : '#FFF',
                     },
                 },
-            })
+            });
+
+            // 這邊寫法是因為編輯文字如果也要有上一步功能，會有問題，會卡住沒辦法真的上一步
+            // 所以這邊在編輯前先關閉紀錄，編輯完後，先移除工具(因為也會算入記錄裡)，再開啟記錄
+            cell.on('changed', ({ cell, options }) => {
+                if (cell.hasTool(name)) cell.removeTool(name);
+                if (!this.graph.isHistoryEnabled()) this.graph.enableHistory();
+            });
         })
+    }
+
+    public initToolBarEvent() {
+        if (this.undoBtn) this.undoBtn.addEventListener('click', () => {
+            if (this.graph.history.canUndo()) this.graph.history.undo();
+        });
+
+        if (this.redoBtn) this.redoBtn.addEventListener('click', () => {
+            if (this.graph.history.canRedo()) this.graph.history.redo();
+        });
+
+        if (this.zoomInBtn) this.zoomInBtn.addEventListener('click', () => { this.zoomIn(); });
+
+        if (this.zoomOutBtn) this.zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
+
     }
     // #endregion
 
     // #region 初始化图形
+    // 初始化图形定義
+    /**
+     * 自定義節點
+     */
     public initGraphNode() {
-        const ports = {
-            groups: {
-                top: {
-                    position: 'top',
+
+        if (!Node.registry.exist(registerName.tipDialog)) {
+            // tip，圓角矩形，黑，白匡
+            Graph.registerNode(
+                registerName.tipDialog,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH * 2,
+                    height: DEFAULT_RECT_HEIGHT * 2,
                     attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
+                        body: {
+                            rx: 15,
+                            ry: 15,
+                            strokeWidth: 2,
+                            stroke: '#cccccc',
+                            fill: '#000000',
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
                         },
                     },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.TIP,
                 },
-                right: {
-                    position: 'right',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-                bottom: {
-                    position: 'bottom',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-                left: {
-                    position: 'left',
-                    attrs: {
-                        circle: {
-                            r: 4,
-                            magnet: true,
-                            stroke: '#5F95FF',
-                            strokeWidth: 1,
-                            fill: '#fff',
-                            style: {
-                                visibility: 'hidden',
-                            },
-                        },
-                    },
-                },
-            },
-            items: [
-                {
-                    id: 'top_left',
-                    group: 'top',
-                },
-                {
-                    id: 'top',
-                    group: 'top',
-                },
-                {
-                    id: 'top_right',
-                    group: 'top',
-                },
-                {
-                    group: 'right',
-                },
-                {
-                    group: 'bottom',
-                },
-                {
-                    group: 'left',
-                },
-            ],
+                true,
+            );
         }
 
-        Graph.registerNode(
-            'custom-rect',
-            {
-                inherit: 'rect',
-                width: 66,
-                height: 36,
-                attrs: {
-                    body: {
-                        strokeWidth: 1,
-                        stroke: '#5F95FF',
-                        fill: '#EFF4FF',
+        if (!Node.registry.exist(registerName.startOrEnd)) {
+            // 開始或結束，圓角矩形，綠
+            Graph.registerNode(
+                registerName.startOrEnd,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.START_END_GREEN,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: 12,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...ports },
-            },
-            true,
-        )
+                true,
+            );
+        }
 
-        Graph.registerNode(
-            'custom-polygon',
-            {
-                inherit: 'polygon',
-                width: 66,
-                height: 36,
-                attrs: {
-                    body: {
-                        strokeWidth: 1,
-                        stroke: '#5F95FF',
-                        fill: '#EFF4FF',
+        if (!Node.registry.exist(registerName.changeToOtherFlowChart)) {
+            // 切換其他流程圖，圓角矩形，藍
+            Graph.registerNode(
+                registerName.changeToOtherFlowChart,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.START_END_BLUE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: 12,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...ports },
-            },
-            true,
-        )
+                true,
+            );
+        }
 
-        Graph.registerNode(
-            'custom-circle',
-            {
-                inherit: 'circle',
-                width: 45,
-                height: 45,
-                attrs: {
-                    body: {
-                        strokeWidth: 1,
-                        stroke: '#5F95FF',
-                        fill: '#EFF4FF',
+        if (!Node.registry.exist(registerName.stopFlowChart)) {
+            // 暫停流程，圓角矩形，灰
+            Graph.registerNode(
+                registerName.stopFlowChart,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.STOP_GRAY,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: 12,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...ports },
-            },
-            true,
-        )
+                true,
+            );
+        }
 
-        Graph.registerNode(
-            'custom-image',
-            {
-                inherit: 'rect',
-                width: 52,
-                height: 52,
-                markup: [
-                    {
-                        tagName: 'rect',
-                        selector: 'body',
+        if (!Node.registry.exist(registerName.process)) {
+            // 過程，矩形，藍
+            Graph.registerNode(
+                registerName.process,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.PROCESS_BLUE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    {
-                        tagName: 'image',
-                    },
-                    {
-                        tagName: 'text',
-                        selector: 'label',
-                    },
-                ],
-                attrs: {
-                    body: {
-                        stroke: '#5F95FF',
-                        fill: '#5F95FF',
-                    },
-                    image: {
-                        width: 26,
-                        height: 26,
-                        refX: 13,
-                        refY: 16,
-                    },
-                    label: {
-                        refX: 3,
-                        refY: 2,
-                        textAnchor: 'left',
-                        textVerticalAnchor: 'top',
-                        fontSize: 12,
-                        fill: '#fff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...ports },
-            },
-            true,
-        )
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.yesOrNo_API)) {
+            // API分岔路，菱形，紅
+            Graph.registerNode(
+                registerName.yesOrNo_API,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_RED,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.yesOrNo)) {
+            // 一般分岔路，菱形，橘
+            Graph.registerNode(
+                registerName.yesOrNo,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_ORANGE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.yesOrNo_success)) {
+            // 正常流程分岔路，菱形，綠
+            Graph.registerNode(
+                registerName.yesOrNo_success,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_GREEN,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.popupRemaining)) {
+            // 彈窗“維護中”
+            Graph.registerNode(
+                registerName.popupRemaining,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupRemaining.src ? popupRemaining.src : ImageKey.POPUP_REMAINING,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.popupReturnGame)) {
+            // 彈窗“回到遊戲”
+            Graph.registerNode(
+                registerName.popupReturnGame,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupReturnGame.src ? popupReturnGame.src : ImageKey.POPUP_RETURN_GAME,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.popupConnectFailed)) {
+            // 彈窗“网络连接失败，请稍后再试”
+            Graph.registerNode(
+                registerName.popupConnectFailed,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupConnectFailed.src ? popupConnectFailed.src : ImageKey.POPUP_CONNECT_FAILED,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
     }
-    // #endregion
 
-    // #region 基礎流程圖節點
-    public initStencilBasicNode() {
-        const r1 = this.graph.createNode({
-            shape: 'custom-rect',
-            label: '开始',
-            attrs: {
-                body: {
-                    rx: 20,
-                    ry: 26,
-                },
-            },
-        })
-        const r2 = this.graph.createNode({
-            shape: 'custom-rect',
-            label: '过程',
-        })
-        const r3 = this.graph.createNode({
-            shape: 'custom-rect',
-            attrs: {
-                body: {
-                    rx: 6,
-                    ry: 6,
-                },
-            },
-            label: '可选过程',
-        })
-        const r4 = this.graph.createNode({
-            shape: 'custom-polygon',
-            attrs: {
-                body: {
-                    refPoints: '0,10 10,0 20,10 10,20',
-                },
-            },
-            label: '决策',
-        })
-        // const r5 = this.graph.createNode({
-        //     shape: 'custom-polygon',
-        //     attrs: {
-        //         body: {
-        //             refPoints: '10,0 40,0 30,20 0,20',
-        //         },
-        //     },
-        //     label: '数据',
-        // })
-        const r6 = this.graph.createNode({
-            shape: 'custom-circle',
-            label: '连接',
-        })
-        this.stencil.load([r1, r2, r3, r4, r6], 'group1');
-    }
-    // #endregion
-
-    // #region 系統設計圖節點
-    public initStencilSpecialNode() {
-        const imageShapes = [
-            {
-                label: 'Client',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/687b6cb9-4b97-42a6-96d0-34b3099133ac.svg',
-            },
-            {
-                label: 'Http',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/dc1ced06-417d-466f-927b-b4a4d3265791.svg',
-            },
-            {
-                label: 'Api',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/c55d7ae1-8d20-4585-bd8f-ca23653a4489.svg',
-            },
-            {
-                label: 'Sql',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/6eb71764-18ed-4149-b868-53ad1542c405.svg',
-            },
-            {
-                label: 'Clound',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/c36fe7cb-dc24-4854-aeb5-88d8dc36d52e.svg',
-            },
-            {
-                label: 'Mq',
-                image:
-                    'https://gw.alipayobjects.com/zos/bmw-prod/2010ac9f-40e7-49d4-8c4a-4fcf2f83033b.svg',
-            },
-        ]
-        const imageNodes = imageShapes.map((item) =>
-            this.graph.createNode({
-                shape: 'custom-image',
-                label: item.label,
-                attrs: {
-                    image: {
-                        'xlink:href': item.image,
+    /**
+     * 自定義邊
+     */
+    public initGraphEdge() {
+        if (!Edge.registry.exist(registerName.normalEdge)) {
+            // 一般線
+            Graph.registerEdge(
+                registerName.normalEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'normal',
                     },
-                },
-            }),
-        )
-        this.stencil.load(imageNodes, 'group2');
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.lEdge)) {
+            // 轉一次彎L型線
+            Graph.registerEdge(
+                registerName.lEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'manhattan',
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.cRightEdge)) {
+            // 轉兩次彎ㄈ型線，右彎
+            Graph.registerEdge(
+                registerName.cRightEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'right' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.cLeftEdge)) {
+            // 轉兩次彎ㄈ型線，左彎
+            Graph.registerEdge(
+                registerName.cLeftEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'left' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.cTopEdge)) {
+            // 轉兩次彎ㄈ型線，上彎
+            Graph.registerEdge(
+                registerName.cTopEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'top' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.cBottomEdge)) {
+            // 轉兩次彎ㄈ型線，下彎
+            Graph.registerEdge(
+                registerName.cBottomEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'bottom' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
     }
     // #endregion
 

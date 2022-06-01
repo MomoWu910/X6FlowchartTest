@@ -1,4 +1,4 @@
-import { Graph, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
+import { Graph, Registry, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
 import { ImageKey } from './constants/assets';
@@ -61,7 +61,10 @@ export default class FlowChart {
     public nowMouseOnNode: any = null;
     public delayTime_changefColor = DEFAULT_CHANGE_COLOR_DELAY;
     public isEditMode: boolean = false;
-    public backBtn: any = null
+    public backBtn: any = null;
+
+    private canvasId: string = '';
+    private cssConfig: string = '';
 
     /**
      * @param canvasId (string) 用於套入canvas的<div>的id
@@ -75,7 +78,7 @@ export default class FlowChart {
      */
     constructor(canvasId: string, option: any = {}) {
 
-        this.initContainer(canvasId)
+        this.initContainer(canvasId);
         this.initConfigs([                  // 初始化config檔
             overviewConfig,
             roomGameBeforeConfig
@@ -756,12 +759,14 @@ export default class FlowChart {
     // 初始化容器
     private initContainer(canvasId: string) {
         if (!canvasId) return;
-        const container = document.getElementById(canvasId)!;
+        this.canvasId = canvasId;
+        const container = document.getElementById(this.canvasId)!;
         const graphContainer = document.createElement('div');
-        graphContainer.id = GRAPH_NAME;
+        graphContainer.id = this.canvasId + '-' + GRAPH_NAME;
         container.appendChild(graphContainer);
 
-        insertCss(cssConfig);
+        this.initCSSConfig(this.canvasId);
+        insertCss(this.cssConfig);
     }
 
     // 初始化画布
@@ -770,7 +775,7 @@ export default class FlowChart {
         const isGrid = (option && option.isGrid !== undefined) ? option.isGrid : true;
 
         const graph = new Graph({
-            container: document.getElementById(GRAPH_NAME)!,                        // 画布的容器
+            container: document.getElementById(this.canvasId + '-' + GRAPH_NAME)!,                        // 画布的容器
             background: { color: this.theme === 'dark' ? '#2A2A2A' : '#ffffff' },   // 背景
             grid: {                                                                 // 网格
                 type: 'doubleMesh',                                                 // 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh'
@@ -1019,425 +1024,459 @@ export default class FlowChart {
      * 自定義節點
      */
     public initGraphNode() {
-        // tip，圓角矩形，黑，白匡
-        Graph.registerNode(
-            registerName.tipDialog,
-            {
-                inherit: 'rect',
-                width: DEFAULT_RECT_WIDTH * 2,
-                height: DEFAULT_RECT_HEIGHT * 2,
-                attrs: {
-                    body: {
-                        rx: 15,
-                        ry: 15,
-                        strokeWidth: 2,
-                        stroke: '#cccccc',
-                        fill: '#000000',
-                    },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
-                },
-                ports: { ...PORTS },
-                zIndex: zIndex.TIP,
-            },
-            true,
-        );
 
-        // 開始或結束，圓角矩形，綠
-        Graph.registerNode(
-            registerName.startOrEnd,
-            {
-                inherit: 'rect',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        rx: 12,
-                        ry: 12,
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.START_END_GREEN,
+        if (!Node.registry.exist(registerName.tipDialog)) {
+            // tip，圓角矩形，黑，白匡
+            Graph.registerNode(
+                registerName.tipDialog,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH * 2,
+                    height: DEFAULT_RECT_HEIGHT * 2,
+                    attrs: {
+                        body: {
+                            rx: 15,
+                            ry: 15,
+                            strokeWidth: 2,
+                            stroke: '#cccccc',
+                            fill: '#000000',
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.TIP,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 切換其他流程圖，圓角矩形，藍
-        Graph.registerNode(
-            registerName.changeToOtherFlowChart,
-            {
-                inherit: 'rect',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        rx: 12,
-                        ry: 12,
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.START_END_BLUE,
+        if (!Node.registry.exist(registerName.startOrEnd)) {
+            // 開始或結束，圓角矩形，綠
+            Graph.registerNode(
+                registerName.startOrEnd,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.START_END_GREEN,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 暫停流程，圓角矩形，灰
-        Graph.registerNode(
-            registerName.stopFlowChart,
-            {
-                inherit: 'rect',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        rx: 12,
-                        ry: 12,
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.STOP_GRAY,
+        if (!Node.registry.exist(registerName.changeToOtherFlowChart)) {
+            // 切換其他流程圖，圓角矩形，藍
+            Graph.registerNode(
+                registerName.changeToOtherFlowChart,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.START_END_BLUE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 過程，矩形，藍
-        Graph.registerNode(
-            registerName.process,
-            {
-                inherit: 'rect',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.PROCESS_BLUE,
+        if (!Node.registry.exist(registerName.stopFlowChart)) {
+            // 暫停流程，圓角矩形，灰
+            Graph.registerNode(
+                registerName.stopFlowChart,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            rx: 12,
+                            ry: 12,
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.STOP_GRAY,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // API分岔路，菱形，紅
-        Graph.registerNode(
-            registerName.yesOrNo_API,
-            {
-                inherit: 'polygon',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        refPoints: '0,10 10,0 20,10 10,20',
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.YN_RED,
+        if (!Node.registry.exist(registerName.process)) {
+            // 過程，矩形，藍
+            Graph.registerNode(
+                registerName.process,
+                {
+                    inherit: 'rect',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.PROCESS_BLUE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 一般分岔路，菱形，橘
-        Graph.registerNode(
-            registerName.yesOrNo,
-            {
-                inherit: 'polygon',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        refPoints: '0,10 10,0 20,10 10,20',
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.YN_ORANGE,
+        if (!Node.registry.exist(registerName.yesOrNo_API)) {
+            // API分岔路，菱形，紅
+            Graph.registerNode(
+                registerName.yesOrNo_API,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_RED,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 正常流程分岔路，菱形，綠
-        Graph.registerNode(
-            registerName.yesOrNo_success,
-            {
-                inherit: 'polygon',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                attrs: {
-                    body: {
-                        refPoints: '0,10 10,0 20,10 10,20',
-                        strokeWidth: 0,
-                        stroke: '#5F95FF',
-                        fill: colorConfig.YN_GREEN,
+        if (!Node.registry.exist(registerName.yesOrNo)) {
+            // 一般分岔路，菱形，橘
+            Graph.registerNode(
+                registerName.yesOrNo,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_ORANGE,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#262626',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 彈窗“維護中”
-        Graph.registerNode(
-            registerName.popupRemaining,
-            {
-                inherit: 'image',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                imageUrl: popupRemaining.src ? popupRemaining.src : ImageKey.POPUP_REMAINING,
-                attrs: {
-                    body: {
-                        strokeWidth: 0,
+        if (!Node.registry.exist(registerName.yesOrNo_success)) {
+            // 正常流程分岔路，菱形，綠
+            Graph.registerNode(
+                registerName.yesOrNo_success,
+                {
+                    inherit: 'polygon',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    attrs: {
+                        body: {
+                            refPoints: '0,10 10,0 20,10 10,20',
+                            strokeWidth: 0,
+                            stroke: '#5F95FF',
+                            fill: colorConfig.YN_GREEN,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#262626',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 彈窗“回到遊戲”
-        Graph.registerNode(
-            registerName.popupReturnGame,
-            {
-                inherit: 'image',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                imageUrl: popupReturnGame.src ? popupReturnGame.src : ImageKey.POPUP_RETURN_GAME,
-                attrs: {
-                    body: {
-                        strokeWidth: 0,
+        if (!Node.registry.exist(registerName.popupRemaining)) {
+            // 彈窗“維護中”
+            Graph.registerNode(
+                registerName.popupRemaining,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupRemaining.src ? popupRemaining.src : ImageKey.POPUP_REMAINING,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
 
-        // 彈窗“网络连接失败，请稍后再试”
-        Graph.registerNode(
-            registerName.popupConnectFailed,
-            {
-                inherit: 'image',
-                width: DEFAULT_RECT_WIDTH,
-                height: DEFAULT_RECT_HEIGHT,
-                imageUrl: popupConnectFailed.src ? popupConnectFailed.src : ImageKey.POPUP_CONNECT_FAILED,
-                attrs: {
-                    body: {
-                        strokeWidth: 0,
+        if (!Node.registry.exist(registerName.popupReturnGame)) {
+            // 彈窗“回到遊戲”
+            Graph.registerNode(
+                registerName.popupReturnGame,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupReturnGame.src ? popupReturnGame.src : ImageKey.POPUP_RETURN_GAME,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
                     },
-                    text: {
-                        fontSize: DEFAULT_FONTSIZE,
-                        fill: '#ffffff',
-                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
                 },
-                ports: { ...PORTS },
-                zIndex: zIndex.NODE,
-            },
-            true,
-        );
+                true,
+            );
+        }
+
+        if (!Node.registry.exist(registerName.popupConnectFailed)) {
+            // 彈窗“网络连接失败，请稍后再试”
+            Graph.registerNode(
+                registerName.popupConnectFailed,
+                {
+                    inherit: 'image',
+                    width: DEFAULT_RECT_WIDTH,
+                    height: DEFAULT_RECT_HEIGHT,
+                    imageUrl: popupConnectFailed.src ? popupConnectFailed.src : ImageKey.POPUP_CONNECT_FAILED,
+                    attrs: {
+                        body: {
+                            strokeWidth: 0,
+                        },
+                        text: {
+                            fontSize: DEFAULT_FONTSIZE,
+                            fill: '#ffffff',
+                        },
+                    },
+                    ports: { ...PORTS },
+                    zIndex: zIndex.NODE,
+                },
+                true,
+            );
+        }
     }
 
     /**
      * 自定義邊
      */
     public initGraphEdge() {
-        // 一般線
-        Graph.registerEdge(
-            registerName.normalEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'normal',
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.normalEdge)) {
+            // 一般線
+            Graph.registerEdge(
+                registerName.normalEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'normal',
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
 
-        // 轉一次彎L型線
-        Graph.registerEdge(
-            registerName.lEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'manhattan',
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.lEdge)) {
+            // 轉一次彎L型線
+            Graph.registerEdge(
+                registerName.lEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'manhattan',
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
 
-        // 轉兩次彎ㄈ型線，右彎
-        Graph.registerEdge(
-            registerName.cRightEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'oneSide',
-                    args: { side: 'right' },
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.cRightEdge)) {
+            // 轉兩次彎ㄈ型線，右彎
+            Graph.registerEdge(
+                registerName.cRightEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'right' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
 
-        // 轉兩次彎ㄈ型線，左彎
-        Graph.registerEdge(
-            registerName.cLeftEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'oneSide',
-                    args: { side: 'left' },
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.cLeftEdge)) {
+            // 轉兩次彎ㄈ型線，左彎
+            Graph.registerEdge(
+                registerName.cLeftEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'left' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
 
-        // 轉兩次彎ㄈ型線，上彎
-        Graph.registerEdge(
-            registerName.cTopEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'oneSide',
-                    args: { side: 'top' },
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.cTopEdge)) {
+            // 轉兩次彎ㄈ型線，上彎
+            Graph.registerEdge(
+                registerName.cTopEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'top' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
 
-        // 轉兩次彎ㄈ型線，下彎
-        Graph.registerEdge(
-            registerName.cBottomEdge,
-            {
-                inherit: 'edge',
-                router: {
-                    name: 'oneSide',
-                    args: { side: 'bottom' },
-                },
-                attrs: {
-                    line: {
-                        stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
-                        strokeWidth: 2,
-                        targetMarker: {
-                            name: 'block',
-                            width: DEFAULT_FONTSIZE,
-                            height: 8,
+        if (!Edge.registry.exist(registerName.cBottomEdge)) {
+            // 轉兩次彎ㄈ型線，下彎
+            Graph.registerEdge(
+                registerName.cBottomEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'oneSide',
+                        args: { side: 'bottom' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
                         },
                     },
-                },
-                zIndex: zIndex.EDGE
-            }
-        );
-
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
     }
 
     // 初始化畫布左上返回上一頁按鈕
@@ -1472,6 +1511,34 @@ export default class FlowChart {
         else {
             pom.click();
         }
+    }
+
+    // 初始化css檔
+    public initCSSConfig(canvasId: string) {
+        this.cssConfig =
+            `
+            #${canvasId}-code-graph-container {
+                width: 100%;
+                height: 100%;
+            }
+            #stencil {
+                width: 180px;
+                height: 100%;
+                position: fixed;
+                z-index: 1;
+            }
+            #graph-container {
+                width: 1200px;
+                height: 800px;
+            }
+            #container #backToPrePage{
+                width: 50px;
+                height: 25px;
+                position: fixed;
+                z-index: 1;
+                margin: 10px;
+            }
+        `;
     }
     // #endregion
 }
