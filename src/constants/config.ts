@@ -72,6 +72,7 @@ export const zIndex = {
  * @param cLeftEdge 轉兩次彎ㄈ型線，左彎
  * @param cTopEdge 轉兩次彎ㄈ型線，上彎
  * @param cBottomEdge 轉兩次彎ㄈ型線，下彎
+ * @param connectorEdge 編輯器節點連接時的的線
  */
 export const registerName = {
     tipDialog: 'tipDialog-rect',
@@ -97,6 +98,7 @@ export const registerName = {
     cLeftEdge: 'cLeftEdge',
     cTopEdge: 'cTopEdge',
     cBottomEdge: 'cBottomEdge',
+    connectorEdge: 'connectorEdge',
 }
 
 

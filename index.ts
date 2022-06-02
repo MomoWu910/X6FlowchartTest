@@ -23,7 +23,7 @@ function startDraw() {
     let start_y = 0;
     let increase_x = 400;
     let increase_y = 200;
-    let oneLineNum = 1;
+    let oneLineNum = 5;
 
     const arr = ['按下確認修改玩家頭像按鈕結果', 'Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
     const tipArr = ['', 'a', 'bbb'];
@@ -44,7 +44,7 @@ function startDraw() {
     };
     // 開始繪製node
     let nodeArray: any[] = [];
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 10; i++) {
 
         // let event_name = '按下確認修改玩家頭像按鈕結果Btn_Base_PersonalNamePopup';
         // let event_name = arr[i % 4] + i;
@@ -105,6 +105,14 @@ function startDraw() {
 
         let direct = (i + 1) % oneLineNum == 0 ? 'v' : 'h';
 
+        // all
+        let edge = x6fc.drawEdge(
+            node1,
+            node2,
+            direct,
+            registerName.normalEdge,
+        );
+
         // L
         // let edge = x6fc.drawEdge(
         //     { cell: node1, port: 'bottom' },
@@ -133,13 +141,13 @@ function startDraw() {
         // );
 
         // c
-        let edge = x6fc.drawEdge(
-            { cell: node1, port: 'right' },
-            { cell: node2, port: 'right' },
-            'c',
-            registerName.cRightEdge,
-            { label: 'Y' }
-        );
+        // let edge = x6fc.drawEdge(
+        //     { cell: node1, port: 'right' },
+        //     { cell: node2, port: 'right' },
+        //     'c',
+        //     registerName.cRightEdge,
+        //     { label: 'Y' }
+        // );
 
         x6fc.setEdgeClickEvenCallback(edge, () => {
             console.log('/////test Edge Callback');

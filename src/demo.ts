@@ -74,80 +74,39 @@ export default class Demo {
             let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
             let posX = node.position().x;
             let posY = node.position().y;
-            let json = `{
-                data: {
-                    seat: "${node.data.seat ? node.data.seat : ''}",
-                    position: "{ x: ${posX}, y: ${posY} }",
-                    name: "${node.data.name ? node.data.name : ''}",
-                    changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
-                    size: ${node.data.size ? JSON.stringify(node.data.size) : null},
-                    tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
+            let json =
+                `
+            {
+                "data": {
+                    "seat": "${(node.data && node.data.seat) ? node.data.seat : ''}",
+                    "position": "{ x: ${posX}, y: ${posY} }",
+                    "name": "${(node.data && node.data.name) ? node.data.name : ''}",
+                    "changeToFlowChart": "${(node.data && node.data.changeToFlowChart) ? node.data.changeToFlowChart : ''}",
+                    "size": ${(node.data && node.data.size) ? JSON.stringify(node.data.size) : null},
+                    "tipContent": "${(node.data && node.data.tipContent) ? node.data.tipContent : ''}"
                 },
-                shape: "${node.shape}",
-                attr: {
-                    label: ${label}
+                "shape": "${node.shape}",
+                "attr": {
+                    "label": ${label}
                 }
             }`;
             nodesJSON.push(json);
         })
+
         return nodesJSON;
     }
 
     // 當前畫布所有邊轉成config格式，並回傳
     public edgesToJSON(edges: Edge[]) {
-        let edgesJSON: any = {};
-        let vFlows: any[] = [], vFlow: any[] = [];
-        let hFlows: any[] = [], hFlow: any[] = [];
-        let lFlows: any[] = [], lFlow: any[] = [];
+        let edgesJSON: any[] = [];
 
         edges.map((edge, index) => {
-            const direction = edge.data.direction;
-
-            // 先暫定這樣寫，風險在於edges萬一不是按照我的畫線順序排序的話就會出錯
-            // 先檢查是否已經換行或換列，是的話就push整個array給flows，並清空
-            // 接著如果沒有起點座標就push，有的話就檢查終點座標沒有就push
-            if (direction === 'v' || direction === 'V') {
-                if (vFlow.length > 0) {
-                    let nowSeat = vFlow[vFlow.length - 1].split('_')[0];
-                    let nextSeat = edge.data.sourceSeat.split('_')[0];
-                    if (nowSeat !== nextSeat) {
-                        vFlows.push(vFlow);
-                        vFlow = [];
-                    }
-                }
-
-                if (vFlow.find(e => e === edge.data.sourceSeat) === undefined) vFlow.push(edge.data.sourceSeat);
-                if (vFlow.find(e => e === edge.data.targetSeat) === undefined) vFlow.push(edge.data.targetSeat);
-            }
-
-            if (direction === 'h' || direction === 'H') {
-                if (hFlow.length > 0) {
-                    let nowSeat = hFlow[hFlow.length - 1].split('_')[1];
-                    let nextSeat = edge.data.sourceSeat.split('_')[1];
-                    if (nowSeat !== nextSeat) {
-                        hFlows.push(hFlow);
-                        hFlow = [];
-                    }
-                }
-
-                if (hFlow.find(e => e === edge.data.sourceSeat) === undefined) hFlow.push(edge.data.sourceSeat);
-                if (hFlow.find(e => e === edge.data.targetSeat) === undefined) hFlow.push(edge.data.targetSeat);
-            }
-
-            if (direction === 'l' || direction === 'L') {
-                lFlow = [edge.data.sourceSeat, edge.data.targetSeat, edge.data.sourcePort, edge.data.targetPort];
-                lFlows.push(lFlow);
-                lFlow = [];
-            }
-
-            if (index === edges.length - 1) {
-                if (vFlow) vFlows.push(vFlow);
-                if (hFlow) hFlows.push(hFlow);
-            }
-
+            // const direction = edge.data.direction;
+            let json = `{
+            }`;
+            edgesJSON.push(json);
         });
 
-        edgesJSON = { vFlows: vFlows, hFlows: hFlows, lFlows: lFlows };
         return edgesJSON;
     }
 
@@ -161,17 +120,16 @@ export default class Demo {
         // 版號都先幫他加一版
         // const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
 
-        // const newConfig = `
-        // export const ${this.nowPage.name} = {
-        //     name: "${this.nowPage.name}",
-        //     level: ${this.nowPage.level},
-        //     version: "${this.checkIfEdited() ? newVersion : this.nowPage.version}",
-        //     nodes: [${nodesJSON}],
-        //     vFlows: ${JSON.stringify(edgesJSON.vFlows)},
-        //     hFlows: ${JSON.stringify(edgesJSON.hFlows)},
-        //     lFlows: ${JSON.stringify(edgesJSON.lFlows)},
-        // }`
-        // return newConfig;
+        const newConfig =
+            `[
+    { 
+        "nodes": [${nodesJSON}] 
+    },
+    { 
+        "edges": [${edgesJSON}] 
+    }
+]`;
+        return newConfig;
     }
 
     // 檢查是否編輯過
@@ -181,6 +139,21 @@ export default class Demo {
     //     console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
     //     return !_.isEqual(editedJSON, originJSON);
     // }
+
+    public download(filename, text) {
+        var pom = document.createElement('a');
+        pom.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(text));
+        pom.setAttribute('download', filename);
+
+        if (document.createEvent) {
+            var event = document.createEvent('MouseEvents');
+            event.initEvent('click', true, true);
+            pom.dispatchEvent(event);
+        }
+        else {
+            pom.click();
+        }
+    }
     // #endregion
 
     // #region 上排功能相關
@@ -194,6 +167,7 @@ export default class Demo {
     public zoomOut(value: number = -0.1) {
         this.graph.zoom(value);
     }
+
     // 初始化畫布左上返回上一頁按鈕
     public initToolBar(canvasId: string) {
         if (!canvasId) return;
@@ -267,24 +241,15 @@ export default class Demo {
                 },
                 createEdge() {
                     return new Shape.Edge({
+                        shape: registerName.connectorEdge,
                         attrs: {
                             line: {
-                                stroke: '#A2B1C3',
+                                stroke: '#ffffff',
                                 strokeWidth: 2,
                                 targetMarker: {
                                     name: 'block',
-                                    width: 12,
+                                    width: DEFAULT_FONTSIZE,
                                     height: 8,
-                                },
-                            },
-                        },
-                        zIndex: 0,
-                        tools: {
-                            name: 'segments',
-                            args: {
-                                snapRadius: 20,
-                                attrs: {
-                                    fill: '#444',
                                 },
                             },
                         },
@@ -540,6 +505,10 @@ export default class Demo {
 
         if (this.zoomOutBtn) this.zoomOutBtn.addEventListener('click', () => { this.zoomOut(); });
 
+        if (this.saveBtn) this.saveBtn.addEventListener('click', () => {
+            let downConfig = this.getNewVersionConfig();
+            this.download('save' + '.json', downConfig);
+        });
     }
     // #endregion
 
@@ -986,6 +955,31 @@ export default class Demo {
                     router: {
                         name: 'oneSide',
                         args: { side: 'bottom' },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.connectorEdge)) {
+            // 編輯器節點連接時的的線
+            Graph.registerEdge(
+                registerName.connectorEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'manhattan',
                     },
                     attrs: {
                         line: {
