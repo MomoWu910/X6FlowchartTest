@@ -1,8 +1,8 @@
-import Demo from './src/demo';
+import FlowChartEditer from './src/flowChartEditer';
 import FlowChart from './src/x6FlowChart';
 
 const CONTAINER_NAME = 'editer-container';
-new Demo(CONTAINER_NAME);
+new FlowChartEditer(CONTAINER_NAME);
 
 import { registerName } from './src/constants/config'
 

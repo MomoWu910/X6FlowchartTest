@@ -1,6 +1,12 @@
 import { Graph, Node, Edge, Shape, Addon } from '@antv/x6';
 import { insertCss } from 'insert-css';
 import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
+
+// const editerDemoConfig = require('./jsonFiles/editerDemoConfig.json');
+const editerDemoConfig = require('./jsonFiles/overviewConfig.json');
+// const editerDemoConfig = require('./jsonFiles/roomGameBeforeConfig.json');
+
+const fs = require('fs');
 import _ from 'lodash';
 
 import popupRemaining from '../res/nodeAssets/popupRemaining.png';
@@ -18,11 +24,14 @@ const REDO_BTN_NAME_EDITER = 'redoEditer';
 const ZOOMIN_BTN_NAME_EDITER = 'zoomInEditer';
 const ZOOMOUT_BTN_NAME_EDITER = 'zoomOutEditer';
 const SAVE_BTN_NAME_EDITER = 'saveEditer';
+const LOAD_BTN_NAME_EDITER = 'loadEditer';
+const CLEAR_BTN_NAME_EDITER = 'clearEditer';
 
 const DEFAULT_RECT_WIDTH = 160;
 const DEFAULT_RECT_HEIGHT = 80;
 const DEFAULT_FONTSIZE = 12;
 
+const DEFAULT_CHANGE_COLOR_DELAY = 0.5;
 
 /* html css 相關樣式建立
 *   stencilContainer: 左側面板
@@ -41,7 +50,7 @@ const preWork = (canvasId: string) => {
     insertCss(cssConfig);
 }
 
-export default class Demo {
+export default class FlowChartEditer {
     public graph: any;
     public stencil: any;
 
@@ -50,46 +59,55 @@ export default class Demo {
     public zoomInBtn: any = null;
     public zoomOutBtn: any = null;
     public saveBtn: any = null;
+    public loadBtn: any = null;
+    public clearBtn: any = null;
+
+    public delayTime_changefColor = DEFAULT_CHANGE_COLOR_DELAY;
+    public editing: boolean = false;
 
     constructor(canvasId: string) {
         preWork(canvasId);                          // 設定css樣式
         this.initGraph();                           // 初始化畫布
         this.initStencil();                         // 初始化左側面板
         this.initGraphNode();                       // 初始化各種節點設定
+        this.initGraphEdge();                       // 初始化各種邊設定
         this.initStencilRectNode();                 // 建立面板上方形元件節點
         this.initStencilPolygonNode();              // 建立面板上菱形元件節點
         this.initStencilSpecialNode();              // 建立面板上自定義圖片節點
 
         this.initToolBar(canvasId);                 // 初始化上一頁按鈕
 
-        this.initEvent();                           // 初始化鍵盤、滑鼠事件
+        this.initKeyBoardEvent();                   // 初始化鍵盤事件
+        this.initCellEvent();                       // 初始化物件事件  
         this.initToolBarEvent();                    // 初始化工具列按鈕事件
     }
 
-    // #region JSON相關
+    // #region 存檔JSON相關
     // 當前畫布所有節點轉成config格式，並回傳
     public nodesToJSON(nodes: Node[]) {
         let nodesJSON: any[] = [];
         nodes.map((node) => {
+            // console.log(node);
             let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
             let posX = node.position().x;
             let posY = node.position().y;
             let json =
                 `
-            {
-                "data": {
-                    "seat": "${(node.data && node.data.seat) ? node.data.seat : ''}",
-                    "position": "{ x: ${posX}, y: ${posY} }",
-                    "name": "${(node.data && node.data.name) ? node.data.name : ''}",
-                    "changeToFlowChart": "${(node.data && node.data.changeToFlowChart) ? node.data.changeToFlowChart : ''}",
-                    "size": ${(node.data && node.data.size) ? JSON.stringify(node.data.size) : null},
-                    "tipContent": "${(node.data && node.data.tipContent) ? node.data.tipContent : ''}"
-                },
-                "shape": "${node.shape}",
-                "attr": {
-                    "label": ${label}
-                }
-            }`;
+        {
+            "data": {
+                "seat": "${(node.data && node.data.seat) ? node.data.seat : ''}",
+                "position": { "x": ${posX}, "y": ${posY} },
+                "id": "${node.id}",
+                "name": "${(node.data && node.data.name) ? node.data.name : ''}",
+                "changeToFlowChart": "${(node.data && node.data.changeToFlowChart) ? node.data.changeToFlowChart : ''}",
+                "size": ${(node.data && node.data.size) ? JSON.stringify(node.data.size) : null},
+                "tipContent": "${(node.data && node.data.tipContent) ? node.data.tipContent : ''}"
+            },
+            "shape": "${node.shape}",
+            "attr": {
+                "label": ${label}
+            }
+        }`;
             nodesJSON.push(json);
         })
 
@@ -100,10 +118,19 @@ export default class Demo {
     public edgesToJSON(edges: Edge[]) {
         let edgesJSON: any[] = [];
 
-        edges.map((edge, index) => {
-            // const direction = edge.data.direction;
-            let json = `{
-            }`;
+        edges.map((edge) => {
+            const direction = (edge.data && edge.data.direction) ? edge.data.direction : 'edit';
+            let json =
+                `
+        {
+            "shape": "${edge.shape}",
+            "source": ${JSON.stringify(edge.source)},
+            "target": ${JSON.stringify(edge.target)},
+            "data": {
+                "label": "${(edge.labels[0] && edge.labels[0].attrs) ? edge.labels[0].attrs.label.text : ''}",
+                "direction": "${direction}"
+            }
+        }`;
             edgesJSON.push(json);
         });
 
@@ -117,28 +144,15 @@ export default class Demo {
         const nodesJSON = this.nodesToJSON(nodes);
         const edgesJSON = this.edgesToJSON(edges);
 
-        // 版號都先幫他加一版
-        // const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
-
         const newConfig =
-            `[
-    { 
-        "nodes": [${nodesJSON}] 
-    },
-    { 
-        "edges": [${edgesJSON}] 
-    }
-]`;
+            `{ 
+    "nodes": [${nodesJSON}
+    ],
+    "edges": [${edgesJSON}
+    ] 
+}`;
         return newConfig;
     }
-
-    // 檢查是否編輯過
-    // public checkIfEdited() {
-    //     const editedJSON = this.graph.toJSON();
-    //     const originJSON = this.saveOriginJSON[this.nowPage.name];
-    //     console.log(editedJSON, originJSON, _.isEqual(editedJSON, originJSON));
-    //     return !_.isEqual(editedJSON, originJSON);
-    // }
 
     public download(filename, text) {
         var pom = document.createElement('a');
@@ -153,6 +167,286 @@ export default class Demo {
         else {
             pom.click();
         }
+    }
+    // #endregion
+
+    // #region 讀檔JSON相關
+    public drawFromConfig(config: any = {}) {
+        if (!config) {
+            console.warn('no config!');
+            return;
+        }
+
+        // console.log(config);
+        if (this.graph.getCellCount() > 0) this.graph.clearCells();
+
+        const nodes = config.nodes;
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+            const posX = node.data.position.x;
+            const posY = node.data.position.y;
+            this.drawNode(posX, posY, node.shape, node.attr, node.data);
+        }
+
+        const edges = config.edges;
+        for (let i = 0; i < edges.length; i++) {
+            const edge = edges[i];
+            const source = edge.source;
+            const target = edge.target;
+            const direction = (edge.data && edge.data.direction) ? edge.data.direction : 'edit';
+
+            this.drawEdge(source, target, direction, edge.shape, { label: edge.data.label });
+        }
+
+        this.graph.cleanHistory();
+
+    }
+
+    // 讀取指定路徑的文件
+    private readFile(path: string = '') {
+        try {
+            let data = fs.readFileSync(path, 'utf8');
+            let final = JSON.parse(data);
+
+            return final;
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
+    // #endregion
+
+    // #region 畫圖相關
+    public drawNode(posX: number = 0, posY: number = 0, shape: string = registerName.process, attr: any = {}, data: any = {}) {
+
+        // 如果有要顯示文字在port，先調整port設定檔
+        let newPort = {};
+        if (attr && attr.portLabels) {
+            newPort = this.getPortLabelsSetting(attr.portLabels);
+        }
+
+        const node = this.graph.addNode({
+            x: posX,
+            y: posY,
+            shape: shape,
+            ports: newPort,
+            id: (data && data.id) ? data.id : '',
+            attrs: {
+                label: {
+                    fontSize: DEFAULT_FONTSIZE,
+                }
+            },
+            data: {
+                name: (data && data.name) ? data.name : '',
+                changeToFlowChart: '',
+                tipDialog: null,
+                tipParent: (data && data.tipParent) ? data.tipParent : null,
+                colorSets: (data && data.colorSets) ? data.colorSets : {},
+                tipColorSets: (data && data.tipColorSets) ? data.tipColorSets : {}
+            }
+        });
+
+        let fontSize = (attr && attr.fontSize) ? attr.fontSize : DEFAULT_FONTSIZE;
+        if (attr && attr.label) {
+            const check = this.checkLabelIfTooLong(node.size(), attr.label, fontSize);
+
+            node.label = check.newLabel;
+            fontSize = check.newFontSize;
+            node.resize(check.newSize.width, check.newSize.height);
+            node.data.size = { w: check.newSize.width, h: check.newSize.height };
+            if (data && data.colorSets && Object.keys(data.colorSets).length === 0) node.data.colorSets = check.colorSets;
+        }
+        node.attr('label/fontSize', fontSize);
+        if (attr && attr.fill) node.attr('label/fill', attr.fill);
+
+        if (shape === registerName.changeToOtherFlowChart) node.data.changeToFlowChart = data.changeToFlowChart;
+        if (data && data.seat) node.data.seat = data.seat;
+        if (data && data.tipContent) node.data.tipContent = data.tipContent;
+
+        if (data && data.colorSets) {
+            if (node.data.colorSets && Object.keys(node.data.colorSets).length > 0) {
+                let colorSets: Array<any> = [];
+                const settings = Object.keys(node.data.colorSets).map((key, index) => {
+                    const set = { index: index, fill: node.data.colorSets[key] };
+                    colorSets.push(set);
+                });
+                this.setNodeLabelColor(node, colorSets);
+            }
+        }
+
+        if (data && data.id) node.id = data.id;
+
+        // console.log('node', node, node.id);
+        return node;
+    }
+
+    public drawEdge(source: any = { x: 0, y: 0 }, target: any = { x: 0, y: 0 }, direction: string = 'v', shape: string = registerName.normalEdge, data: any = {}) {
+        let sourceCheck, targetCheck;
+        let sourceX = 0, sourceY = 0, targetX = 0, targetY = 0;
+
+        // 如果 source.cell or target.cell 是id的話就不進入座標判斷
+        if (typeof source.cell !== "string") {
+            sourceX = source.cell ? source.cell.position().x : (source.position() ? source.position().x : source.x);
+            sourceY = source.cell ? source.cell.position().y : (source.position() ? source.position().y : source.y);
+        }
+        if (typeof target.cell !== "string") {
+            targetX = target.cell ? target.cell.position().x : (target.position() ? target.position().x : target.x);
+            targetY = target.cell ? target.cell.position().y : (target.position() ? target.position().y : target.y);
+        }
+
+        if (direction === 'v' || direction === 'V') {
+            // 檢查方向，source在上方那就從 bottom->top，在下方就 top->bottom
+            // 下方的y比較大
+            let checkV = (sourceY - targetY) < 0;
+            sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkV ? 'bottom' : 'top') };
+            targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkV ? 'top' : 'bottom') };
+        }
+        else if (direction === 'h' || direction === 'H') {
+            // 檢查方向，source在左方那就從 right->left，在右方就 left->right
+            // 右方的x比較大
+            let checkH = (sourceX - targetX) < 0;
+            sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkH ? 'right' : 'left') };
+            targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkH ? 'left' : 'right') };
+        }
+        else {
+            sourceCheck = { cell: source.cell, port: source.port };
+            targetCheck = { cell: target.cell, port: target.port };
+        }
+
+        const edge = this.graph.addEdge({
+            shape: shape,
+            source: sourceCheck,
+            target: targetCheck,
+            attrs: {
+                label: {
+                    text: '',
+                    fontSize: DEFAULT_FONTSIZE,
+                }
+            },
+            data: {
+                direction: direction,
+                sourceSeat: data.sourceSeat ? data.sourceSeat : '',
+                targetSeat: data.targetSeat ? data.targetSeat : '',
+                sourcePort: sourceCheck.port,
+                targetPort: targetCheck.port,
+            }
+        });
+
+        if (data && data.label) {
+            if (data.label === 'n' || data.label === 'N') edge.appendLabel('否');
+            else if (data.label === 'y' || data.label === 'Y') edge.appendLabel('是');
+            else edge.appendLabel(data.label);
+
+            edge.data = {
+                ...edge.data,
+                label: data.label
+            };
+        }
+
+        // console.log('edge', edge);
+
+        return edge;
+    }
+
+    // 檢查文字長度，如果太長超過節點就縮小字體大小，如果小到小於12還不夠就幫他換行(判斷有無底線)
+    private checkLabelIfTooLong(nodeSize: any, label: string, fontSize: number = DEFAULT_FONTSIZE) {
+        let newSizeW = nodeSize.width;
+        let newSizeH = nodeSize.height;
+        let newFontSize = fontSize;
+        let newLabel = label;
+        let ifn = label.includes('\n');
+        let withoutN = ifn ? label.split('\n') : [label];
+        let longest = ifn ? withoutN.sort((a, b) => b.length - a.length)[0] : label;
+        let split = longest.split('');
+        let ifCMN = franc(longest) == 'cmn';
+        let minFontSize = ifCMN ? 14 : 12;
+        let fontSizeAdjust = ifCMN ? 1.1 : 0.6;
+
+        // 如果太長超過節點就縮小字體大小
+        if (fontSize < minFontSize) newFontSize = minFontSize;
+        for (let size = newFontSize; size < minFontSize; size--) {
+            if (split.length * size < nodeSize) {
+                newFontSize = size;
+                break;
+            }
+        }
+
+        if (ifn) {
+            // 幫它放大節點高度，保留padding兩個字，1.1是因為單純抓字數乘以大小節點會太小
+            if (withoutN.length * newFontSize > newSizeH) {
+                newSizeH = (withoutN.length * 1.1) * newFontSize;
+            }
+        }
+
+        let colorSets = {};
+        withoutN.forEach((line, index) => {
+            colorSets[index] = 'white';
+        })
+
+        // 幫它放大節點寬度，保留padding兩個字，0.6是因為單純抓字數乘以大小節點會太大
+        if (split.length * newFontSize > newSizeW) {
+            newSizeW = (split.length * fontSizeAdjust) * newFontSize;
+        }
+
+        return { newSize: { width: newSizeW, height: newSizeH }, newLabel: newLabel, newFontSize: newFontSize, colorSets: colorSets }
+    }
+
+    // 節點周圍要顯示文字的話，要重寫port的設置
+    private getPortLabelsSetting(portLabels: any = []) {
+        const groups = PORTS.groups;
+        let items = PORTS.items;
+        items.forEach((item, index) => {
+            const label = portLabels.find(e => e.portId === item.id);
+            if (label !== undefined) {
+                items[index] = {
+                    ...items[index],
+                    attrs: {
+                        text: {
+                            ...items[index].attrs.text,
+                            text: label.label,
+                            fill: label.fill ? label.fill : '#FFF',
+                        },
+                    },
+                }
+            }
+        });
+
+        return { groups: groups, items: items }
+    }
+
+    // 改變節點port文字
+    public setPortsLabel(cell: any = Node, portLabels: any = []) {
+        portLabels.forEach(item => {
+            cell.setPortProp(item.portId, ['attrs', 'text'], { text: item.label, fill: item.fill })
+        });
+    }
+
+    // 改變節點的文字
+    public setNodeLabel(cell: any = Node, label: string = '') {
+        if (cell.label) cell.label = label;
+    }
+
+    // 改變節點內文字顏色
+    public setNodeLabelColor(cell: any = Node, settings: Array<any> = []) {
+        gsap.delayedCall(this.delayTime_changefColor, () => {
+            let a = this.graph.findViewByCell(cell);
+            let allTspan = a.find('tspan');
+
+            settings.forEach(setting => {
+                let withoutEmptyTspan = allTspan.filter(tspan => tspan.textContent !== '-');
+                if (!withoutEmptyTspan[setting.index]) console.error('no this line!');
+                else {
+                    withoutEmptyTspan[setting.index].setAttribute('fill', setting.fill);
+                    if (cell.data.tipParent) cell.data.tipParent.data.tipColorSets[setting.index] = setting.fill;
+                    cell.data.colorSets[setting.index] = setting.fill;
+                }
+            });
+        });
+    }
+
+    // 清除畫布
+    public clearGraph() {
+        this.graph.clearCells();
     }
     // #endregion
 
@@ -183,6 +477,8 @@ export default class Demo {
         this.zoomInBtn = this.createBtn('放大', ZOOMIN_BTN_NAME_EDITER, toolbar);
         this.zoomOutBtn = this.createBtn('縮小', ZOOMOUT_BTN_NAME_EDITER, toolbar);
         this.saveBtn = this.createBtn('存檔', SAVE_BTN_NAME_EDITER, toolbar);
+        this.loadBtn = this.createBtn('讀檔', LOAD_BTN_NAME_EDITER, toolbar);
+        this.clearBtn = this.createBtn('清除', CLEAR_BTN_NAME_EDITER, toolbar);
     }
 
     // 建立按鈕
@@ -252,12 +548,16 @@ export default class Demo {
                                     height: 8,
                                 },
                             },
+                            label: {
+                                text: '',
+                                fontSize: DEFAULT_FONTSIZE,
+                            }
                         },
                     })
                 },
                 validateConnection({ targetMagnet }) {              // 在移动边的时候判断连接是否有效，如果返回 false，当鼠标放开的时候，不会连接到当前元素，否则会连接到当前元素。
                     return !!targetMagnet
-                },
+                }
             },
             highlighting: {                                         // 高亮选项
                 magnetAdsorbed: {                                   // 连线过程中，自动吸附到链接桩时被使用
@@ -286,7 +586,9 @@ export default class Demo {
             snapline: true,                                         // 对齐线
             keyboard: true,                                         // 键盘快捷键
             clipboard: true,                                        // 剪切板
-            history: true,                                          // 撤销/重做
+            history: {
+                enabled: true,
+            },
         });
 
         this.graph = graph;
@@ -392,7 +694,7 @@ export default class Demo {
     // #endregion
 
     // #region 快捷键与事件
-    public initEvent() {
+    public initKeyBoardEvent() {
         // copy cut paste
         this.graph.bindKey(['meta+c', 'ctrl+c'], () => {
             const cells = this.graph.getSelectedCells()
@@ -446,7 +748,9 @@ export default class Demo {
                 this.graph.removeCells(cells)
             }
         })
+    }
 
+    public initCellEvent() {
         // 控制连接桩显示/隐藏
         const showPorts = (ports: NodeListOf<SVGElement>, show: boolean) => {
             for (let i = 0, len = ports.length; i < len; i = i + 1) {
@@ -469,8 +773,11 @@ export default class Demo {
         })
 
         this.graph.on('cell:dblclick', ({ cell, e }) => {
+
+            // 因為addTools的動作也會算在歷史紀錄裡，造成undo的時候表現不對所以這邊先關記錄功能
             this.graph.disableHistory();
             const isNode = cell.isNode();
+            this.graph.unselect(cell); // 如果雙擊之後還是選取狀態的話，編輯文字時按刪除鍵會把整個cell刪掉，所以先取消選取狀態
             const name = cell.isNode() ? 'node-editor' : 'edge-editor';
             cell.removeTool(name);
             cell.addTools({
@@ -482,14 +789,39 @@ export default class Demo {
                     },
                 },
             });
+            this.editing = true;
+            if (!this.graph.isHistoryEnabled() && !isNode) this.graph.enableHistory();
+        });
 
-            // 這邊寫法是因為編輯文字如果也要有上一步功能，會有問題，會卡住沒辦法真的上一步
-            // 所以這邊在編輯前先關閉紀錄，編輯完後，先移除工具(因為也會算入記錄裡)，再開啟記錄
-            cell.on('changed', ({ cell, options }) => {
-                if (cell.hasTool(name)) cell.removeTool(name);
+        // 節點編輯文字後的回調
+        this.graph.on('cell:change:attrs', ({ cell, current }) => {
+            if (cell.hasTool('node-editor') && this.editing) {
+                this.graph.disableHistory();
+                cell.removeTool('node-editor');
                 if (!this.graph.isHistoryEnabled()) this.graph.enableHistory();
-            });
-        })
+
+                this.editing = false;
+                cell.attr('label/text', current.text.text);
+            }
+        });
+
+        // 邊編輯文字後的回調
+        this.graph.on('edge:change:labels', ({ cell }) => {
+            if (cell.hasTool('edge-editor') && this.editing) {
+                this.graph.disableHistory();
+                cell.removeTool('edge-editor');
+                if (!this.graph.isHistoryEnabled()) this.graph.enableHistory();
+                this.editing = false;
+            }
+        });
+
+        this.graph.on('cell:change:tools', ({ cell }) => {
+            if (!this.graph.isHistoryEnabled() && !cell.hasTool('node-editor')) this.graph.enableHistory();
+        });
+
+        this.graph.on('blank:click', () => {
+            if (this.editing) this.editing = false;
+        });
     }
 
     public initToolBarEvent() {
@@ -507,8 +839,15 @@ export default class Demo {
 
         if (this.saveBtn) this.saveBtn.addEventListener('click', () => {
             let downConfig = this.getNewVersionConfig();
-            this.download('save' + '.json', downConfig);
+            // console.log(downConfig);
+            this.download('editerDemoConfig' + '.json', downConfig);
         });
+
+        if (this.loadBtn) this.loadBtn.addEventListener('click', () => {
+            if (editerDemoConfig) this.drawFromConfig(editerDemoConfig);
+        });
+
+        if (this.clearBtn) this.clearBtn.addEventListener('click', () => { this.clearGraph(); });
     }
     // #endregion
 

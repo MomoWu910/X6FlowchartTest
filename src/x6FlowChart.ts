@@ -206,83 +206,53 @@ export default class FlowChart {
     public nodesToJSON(nodes: Node[]) {
         let nodesJSON: any[] = [];
         nodes.map((node) => {
+            // console.log(node);
             let label = (node.attrs && node.attrs.text && node.attrs.text.text) ? JSON.stringify(node.attrs.text.text) : JSON.stringify('');
             let posX = node.position().x;
             let posY = node.position().y;
-            let json = `{
-                data: {
-                    seat: "${node.data.seat ? node.data.seat : ''}",
-                    position: "{ x: ${posX}, y: ${posY} }",
-                    name: "${node.data.name ? node.data.name : ''}",
-                    changeToFlowChart: "${node.data.changeToFlowChart ? node.data.changeToFlowChart : ''}",
-                    size: ${node.data.size ? JSON.stringify(node.data.size) : null},
-                    tipContent: "${node.data.tipContent ? node.data.tipContent : ''}"
-                },
-                shape: "${node.shape}",
-                attr: {
-                    label: ${label}
-                }
-            }`;
+            let json =
+                `
+        {
+            "data": {
+                "seat": "${(node.data && node.data.seat) ? node.data.seat : ''}",
+                "position": { "x": ${posX}, "y": ${posY} },
+                "id": "${node.id}",
+                "name": "${(node.data && node.data.name) ? node.data.name : ''}",
+                "changeToFlowChart": "${(node.data && node.data.changeToFlowChart) ? node.data.changeToFlowChart : ''}",
+                "size": ${(node.data && node.data.size) ? JSON.stringify(node.data.size) : null},
+                "tipContent": "${(node.data && node.data.tipContent) ? node.data.tipContent : ''}"
+            },
+            "shape": "${node.shape}",
+            "attr": {
+                "label": ${label}
+            }
+        }`;
             nodesJSON.push(json);
         })
+
         return nodesJSON;
     }
 
     // 當前畫布所有邊轉成config格式，並回傳
     public edgesToJSON(edges: Edge[]) {
-        let edgesJSON: any = {};
-        let vFlows: any[] = [], vFlow: any[] = [];
-        let hFlows: any[] = [], hFlow: any[] = [];
-        let lFlows: any[] = [], lFlow: any[] = [];
+        let edgesJSON: any[] = [];
 
-        edges.map((edge, index) => {
-            const direction = edge.data.direction;
-
-            // 先暫定這樣寫，風險在於edges萬一不是按照我的畫線順序排序的話就會出錯
-            // 先檢查是否已經換行或換列，是的話就push整個array給flows，並清空
-            // 接著如果沒有起點座標就push，有的話就檢查終點座標沒有就push
-            if (direction === 'v' || direction === 'V') {
-                if (vFlow.length > 0) {
-                    let nowSeat = vFlow[vFlow.length - 1].split('_')[0];
-                    let nextSeat = edge.data.sourceSeat.split('_')[0];
-                    if (nowSeat !== nextSeat) {
-                        vFlows.push(vFlow);
-                        vFlow = [];
-                    }
-                }
-
-                if (vFlow.find(e => e === edge.data.sourceSeat) === undefined) vFlow.push(edge.data.sourceSeat);
-                if (vFlow.find(e => e === edge.data.targetSeat) === undefined) vFlow.push(edge.data.targetSeat);
+        edges.map((edge) => {
+            const direction = (edge.data && edge.data.direction) ? edge.data.direction : 'edit';
+            let json =
+                `
+        {
+            "shape": "${edge.shape}",
+            "source": ${JSON.stringify(edge.source)},
+            "target": ${JSON.stringify(edge.target)},
+            "data": {
+                "label": "${(edge.labels[0] && edge.labels[0].attrs) ? edge.labels[0].attrs.label.text : ''}",
+                "direction": "${direction}"
             }
-
-            if (direction === 'h' || direction === 'H') {
-                if (hFlow.length > 0) {
-                    let nowSeat = hFlow[hFlow.length - 1].split('_')[1];
-                    let nextSeat = edge.data.sourceSeat.split('_')[1];
-                    if (nowSeat !== nextSeat) {
-                        hFlows.push(hFlow);
-                        hFlow = [];
-                    }
-                }
-
-                if (hFlow.find(e => e === edge.data.sourceSeat) === undefined) hFlow.push(edge.data.sourceSeat);
-                if (hFlow.find(e => e === edge.data.targetSeat) === undefined) hFlow.push(edge.data.targetSeat);
-            }
-
-            if (direction === 'l' || direction === 'L') {
-                lFlow = [edge.data.sourceSeat, edge.data.targetSeat, edge.data.sourcePort, edge.data.targetPort];
-                lFlows.push(lFlow);
-                lFlow = [];
-            }
-
-            if (index === edges.length - 1) {
-                if (vFlow) vFlows.push(vFlow);
-                if (hFlow) hFlows.push(hFlow);
-            }
-
+        }`;
+            edgesJSON.push(json);
         });
 
-        edgesJSON = { vFlows: vFlows, hFlows: hFlows, lFlows: lFlows };
         return edgesJSON;
     }
 
@@ -293,19 +263,13 @@ export default class FlowChart {
         const nodesJSON = this.nodesToJSON(nodes);
         const edgesJSON = this.edgesToJSON(edges);
 
-        // 版號都先幫他加一版
-        const newVersion = `${this.nowPage.version.split('.')[0]}.${this.nowPage.version.split('.')[1]}.${Number(this.nowPage.version.split('.')[2]) + 1}`;
-
-        const newConfig = `
-        export const ${this.nowPage.name} = {
-            name: "${this.nowPage.name}",
-            level: ${this.nowPage.level},
-            version: "${this.checkIfEdited() ? newVersion : this.nowPage.version}",
-            nodes: [${nodesJSON}],
-            vFlows: ${JSON.stringify(edgesJSON.vFlows)},
-            hFlows: ${JSON.stringify(edgesJSON.hFlows)},
-            lFlows: ${JSON.stringify(edgesJSON.lFlows)},
-        }`
+        const newConfig =
+            `{ 
+    "nodes": [${nodesJSON}
+    ],
+    "edges": [${edgesJSON}
+    ] 
+}`;
         return newConfig;
     }
 
@@ -550,6 +514,7 @@ export default class FlowChart {
             else edge.appendLabel(data.label);
 
             edge.data = {
+                ...edge.data,
                 label: data.label
             };
         }
@@ -946,7 +911,7 @@ export default class FlowChart {
                 }
 
                 let downConfig = this.getNewVersionConfig();
-                this.download(this.nowPage.name + '.ts', downConfig);
+                this.download(this.nowPage.name + '.json', downConfig);
             });
         }
 
@@ -1465,6 +1430,31 @@ export default class FlowChart {
                     attrs: {
                         line: {
                             stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
+        if (!Edge.registry.exist(registerName.connectorEdge)) {
+            // 編輯器節點連接時的的線
+            Graph.registerEdge(
+                registerName.connectorEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'manhattan',
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
                             strokeWidth: 2,
                             targetMarker: {
                                 name: 'block',

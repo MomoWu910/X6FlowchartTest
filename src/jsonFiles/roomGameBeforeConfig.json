@@ -1,0 +1,486 @@
+{ 
+    "nodes": [
+        {
+            "data": {
+                "seat": "1_1",
+                "position": { "x": 340, "y": 240 },
+                "id": "09581b4b-ea61-4d21-be56-24468255b390",
+                "name": "downloadLoadingPage",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "载入loading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_2",
+                "position": { "x": 340, "y": 380 },
+                "id": "05703bd7-188d-4ecf-ab49-1cf82dead738",
+                "name": "ifAPISend",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "是否发送成功\n(本机网路正常)"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_4",
+                "position": { "x": 340, "y": 660 },
+                "id": "e91b8232-db66-459e-be4b-6da52e50c0bc",
+                "name": "ifAPIReqIn30Sec",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "30秒内是否\n收到API回应"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_6",
+                "position": { "x": 340, "y": 940 },
+                "id": "00ab53a2-c6de-4a70-8780-756ee1ce71c4",
+                "name": "ifTokenInvalid",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo_success-polygon",
+            "attr": {
+                "label": "是否token失效\n(-201)"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_7",
+                "position": { "x": 340, "y": 1080 },
+                "id": "fd627070-1cbe-4131-b8af-0cc0810b38fa",
+                "name": "closeLoadingEnterRoomList",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "收掉loading页\n进入选房页"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_8",
+                "position": { "x": 340, "y": 1220 },
+                "id": "12712f0d-51c8-4fe4-befb-49f6d3fdc924",
+                "name": "changeToChooseRoomFlowChart",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "changeToOtherFlowChart-rect",
+            "attr": {
+                "label": "点击游戏房间"
+            }
+        },
+        {
+            "data": {
+                "seat": "2_2",
+                "position": { "x": 567.6, "y": 380 },
+                "id": "051e3a53-f3ac-40ad-a176-04e0c96d5f6f",
+                "name": "connectFailed",
+                "changeToFlowChart": "",
+                "size": {"w":184.8,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试"
+            }
+        },
+        {
+            "data": {
+                "seat": "2_4",
+                "position": { "x": 567.6, "y": 660 },
+                "id": "744381ce-3481-4adf-9ebd-64375564ecf9",
+                "name": "connectFailed",
+                "changeToFlowChart": "",
+                "size": {"w":184.8,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试"
+            }
+        },
+        {
+            "data": {
+                "seat": "2_6",
+                "position": { "x": 567.6, "y": 940 },
+                "id": "4135479e-0db8-4765-a878-7a61b7dfbb77",
+                "name": "connectFailed",
+                "changeToFlowChart": "",
+                "size": {"w":184.8,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "loading下方文案\n网络连接失败，请稍后再试"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_2",
+                "position": { "x": 820, "y": 380 },
+                "id": "4f2fd3e6-d773-4370-a100-9c6dcd60b1b4",
+                "name": "ifPopupResourceLoaded",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_3",
+                "position": { "x": 820, "y": 520 },
+                "id": "bdab8733-9641-4824-92e2-4eafe5987ac7",
+                "name": "stopInLoadingPage",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_4",
+                "position": { "x": 820, "y": 660 },
+                "id": "7ebd0af4-6fd6-4053-a0eb-a548ed569007",
+                "name": "ifPopupResourceLoaded",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_5",
+                "position": { "x": 820, "y": 800 },
+                "id": "7efd00db-bdc8-49ea-843d-b27749b3af08",
+                "name": "stopInLoadingPage",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_6",
+                "position": { "x": 820, "y": 940 },
+                "id": "11640303-9a94-418c-b71e-3ca74b2b7b3e",
+                "name": "ifPopupResourceLoaded",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "弹窗资源是否load完"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_7",
+                "position": { "x": 820, "y": 1080 },
+                "id": "aad83142-ae86-4d6e-9e24-a6666f6765c1",
+                "name": "stopInLoadingPage",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "不做其他处理，停在\nloading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_2",
+                "position": { "x": 1060, "y": 380 },
+                "id": "0862fbb1-a602-4174-9e16-063dd5b85eca",
+                "name": "popupConnectFailed",
+                "changeToFlowChart": "",
+                "size": null,
+                "tipContent": ""
+            },
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "label": ""
+            }
+        },
+        {
+            "data": {
+                "seat": "4_4",
+                "position": { "x": 1060, "y": 660 },
+                "id": "5c042ef0-bdee-411e-bc9d-408047eb7ecc",
+                "name": "popupConnectFailed",
+                "changeToFlowChart": "",
+                "size": null,
+                "tipContent": ""
+            },
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "label": ""
+            }
+        },
+        {
+            "data": {
+                "seat": "4_6",
+                "position": { "x": 1060, "y": 940 },
+                "id": "916feb23-5ff5-48c8-9374-46a021cf92c8",
+                "name": "popupConnectFailed",
+                "changeToFlowChart": "",
+                "size": null,
+                "tipContent": ""
+            },
+            "shape": "popupConnectFailed-image",
+            "attr": {
+                "label": ""
+            }
+        },
+        {
+            "data": {
+                "seat": "5_3",
+                "position": { "x": 1272.2, "y": 520 },
+                "id": "40895921-3603-41e6-a4fd-284b7c5dfa1b",
+                "name": "notOneGameBackLobby",
+                "changeToFlowChart": "",
+                "size": {"w":215.60000000000002,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "非单一游戏: 返回大厅\n单一游戏: 黑遮罩+弹窗文案"
+            }
+        },
+        {
+            "data": {
+                "seat": "5_6",
+                "position": { "x": 1264.5, "y": 940 },
+                "id": "d853272b-2c03-4339-9e0d-6a074b1fd3c9",
+                "name": "maskAndToast",
+                "changeToFlowChart": "",
+                "size": {"w":231,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "黑遮罩+toast\n“当前连接已过期，请重新登录”"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"09581b4b-ea61-4d21-be56-24468255b390","port":"bottom"},
+            "target": {"cell":"05703bd7-188d-4ecf-ab49-1cf82dead738","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"05703bd7-188d-4ecf-ab49-1cf82dead738","port":"bottom"},
+            "target": {"cell":"e91b8232-db66-459e-be4b-6da52e50c0bc","port":"top"},
+            "data": {
+                "label": "是",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"e91b8232-db66-459e-be4b-6da52e50c0bc","port":"bottom"},
+            "target": {"cell":"00ab53a2-c6de-4a70-8780-756ee1ce71c4","port":"top"},
+            "data": {
+                "label": "是",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"00ab53a2-c6de-4a70-8780-756ee1ce71c4","port":"bottom"},
+            "target": {"cell":"fd627070-1cbe-4131-b8af-0cc0810b38fa","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"fd627070-1cbe-4131-b8af-0cc0810b38fa","port":"bottom"},
+            "target": {"cell":"12712f0d-51c8-4fe4-befb-49f6d3fdc924","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"4f2fd3e6-d773-4370-a100-9c6dcd60b1b4","port":"bottom"},
+            "target": {"cell":"bdab8733-9641-4824-92e2-4eafe5987ac7","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"7ebd0af4-6fd6-4053-a0eb-a548ed569007","port":"bottom"},
+            "target": {"cell":"7efd00db-bdc8-49ea-843d-b27749b3af08","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"11640303-9a94-418c-b71e-3ca74b2b7b3e","port":"bottom"},
+            "target": {"cell":"aad83142-ae86-4d6e-9e24-a6666f6765c1","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"05703bd7-188d-4ecf-ab49-1cf82dead738","port":"right"},
+            "target": {"cell":"051e3a53-f3ac-40ad-a176-04e0c96d5f6f","port":"left"},
+            "data": {
+                "label": "否",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"051e3a53-f3ac-40ad-a176-04e0c96d5f6f","port":"right"},
+            "target": {"cell":"4f2fd3e6-d773-4370-a100-9c6dcd60b1b4","port":"left"},
+            "data": {
+                "label": "",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"4f2fd3e6-d773-4370-a100-9c6dcd60b1b4","port":"right"},
+            "target": {"cell":"0862fbb1-a602-4174-9e16-063dd5b85eca","port":"left"},
+            "data": {
+                "label": "是",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"e91b8232-db66-459e-be4b-6da52e50c0bc","port":"right"},
+            "target": {"cell":"744381ce-3481-4adf-9ebd-64375564ecf9","port":"left"},
+            "data": {
+                "label": "否",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"744381ce-3481-4adf-9ebd-64375564ecf9","port":"right"},
+            "target": {"cell":"7ebd0af4-6fd6-4053-a0eb-a548ed569007","port":"left"},
+            "data": {
+                "label": "",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"7ebd0af4-6fd6-4053-a0eb-a548ed569007","port":"right"},
+            "target": {"cell":"5c042ef0-bdee-411e-bc9d-408047eb7ecc","port":"left"},
+            "data": {
+                "label": "是",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"00ab53a2-c6de-4a70-8780-756ee1ce71c4","port":"right"},
+            "target": {"cell":"4135479e-0db8-4765-a878-7a61b7dfbb77","port":"left"},
+            "data": {
+                "label": "否",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"4135479e-0db8-4765-a878-7a61b7dfbb77","port":"right"},
+            "target": {"cell":"11640303-9a94-418c-b71e-3ca74b2b7b3e","port":"left"},
+            "data": {
+                "label": "",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"11640303-9a94-418c-b71e-3ca74b2b7b3e","port":"right"},
+            "target": {"cell":"916feb23-5ff5-48c8-9374-46a021cf92c8","port":"left"},
+            "data": {
+                "label": "是",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"916feb23-5ff5-48c8-9374-46a021cf92c8","port":"right"},
+            "target": {"cell":"d853272b-2c03-4339-9e0d-6a074b1fd3c9","port":"left"},
+            "data": {
+                "label": "",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "lEdge",
+            "source": {"cell":"0862fbb1-a602-4174-9e16-063dd5b85eca","port":"right"},
+            "target": {"cell":"40895921-3603-41e6-a4fd-284b7c5dfa1b","port":"left_top"},
+            "data": {
+                "label": "",
+                "direction": "l"
+            }
+        },
+        {
+            "shape": "lEdge",
+            "source": {"cell":"5c042ef0-bdee-411e-bc9d-408047eb7ecc","port":"right"},
+            "target": {"cell":"40895921-3603-41e6-a4fd-284b7c5dfa1b","port":"left_bottom"},
+            "data": {
+                "label": "",
+                "direction": "l"
+            }
+        }
+    ] 
+}

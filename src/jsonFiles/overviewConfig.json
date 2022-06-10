@@ -1,0 +1,483 @@
+{ 
+    "nodes": [
+        {
+            "data": {
+                "seat": "1_1",
+                "position": { "x": 340, "y": 240 },
+                "id": "2b02f247-bb82-44b3-9e97-faee371dbafb",
+                "name": "startLobby",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "从商户平台\n点击大厅"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_2",
+                "position": { "x": 340, "y": 380 },
+                "id": "c039e506-efdd-4866-b1f7-652b403ed694",
+                "name": "downloadLobbyLoading",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "下载大厅loading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_3",
+                "position": { "x": 340, "y": 520 },
+                "id": "bf2942d8-a508-4ed1-8a5d-4cfa36dc3871",
+                "name": "downloadLoadingPage",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "载入loading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_4",
+                "position": { "x": 327.6, "y": 660 },
+                "id": "9495d818-e24d-491b-aea8-42097e42a983",
+                "name": "waitingLoading",
+                "changeToFlowChart": "",
+                "size": {"w":184.8,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "载入完成后\n\n背后初始化游戏\n显示文案:\n'正在登陆游戏，请稍候'"
+            }
+        },
+        {
+            "data": {
+                "seat": "1_5",
+                "position": { "x": 340, "y": 800 },
+                "id": "7f790321-e372-4550-a5e2-6bb7244a32db",
+                "name": "initEndEnterLobby",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "初始化游戏完成后\n关loading页\n进大厅"
+            }
+        },
+        {
+            "data": {
+                "seat": "2_1",
+                "position": { "x": 580, "y": 240 },
+                "id": "ad1e9b18-0519-4d87-90f5-2dd756786cec",
+                "name": "hotChangeGame",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "火热点击游戏跳转"
+            }
+        },
+        {
+            "data": {
+                "seat": "2_2",
+                "position": { "x": 580, "y": 380 },
+                "id": "63ca2f60-ac09-4eed-90f0-f604de707928",
+                "name": "connecting",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "连接中"
+            }
+        },
+        {
+            "data": {
+                "seat": "3_1",
+                "position": { "x": 820, "y": 240 },
+                "id": "a92629dc-1dd0-4fed-995d-20bac184dbab",
+                "name": "enterGameFrom156",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "从商户平台\n点击游戏"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_1",
+                "position": { "x": 1060, "y": 240 },
+                "id": "801979e0-ea0a-4337-95df-60554ca6073c",
+                "name": "enterGameFromLobby",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "从大厅中点击游戏"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_2",
+                "position": { "x": 1060, "y": 380 },
+                "id": "d27bf212-7e05-40f7-ac0e-511977e27abc",
+                "name": "connecting",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "连接中"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_3",
+                "position": { "x": 1060, "y": 520 },
+                "id": "c651f813-cdf3-450f-9fd1-04f95e388bbc",
+                "name": "ifAPIRemaining",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo_API-polygon",
+            "attr": {
+                "label": "API\n是否维护中"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_4",
+                "position": { "x": 1060, "y": 660 },
+                "id": "d8c13d89-87b7-4248-8753-a93342649dd9",
+                "name": "ifInOtherGame",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo_API-polygon",
+            "attr": {
+                "label": "API\n是否在其他游戏"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_5",
+                "position": { "x": 1060, "y": 800 },
+                "id": "432a47af-49cd-45fb-9d6d-5620d0cb3241",
+                "name": "downloadLobbyLoading",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "process-rect",
+            "attr": {
+                "label": "下载大厅loading页"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_6",
+                "position": { "x": 1060, "y": 940 },
+                "id": "8894c9af-83f8-4343-9ef6-e5c63286674b",
+                "name": "ifRoomGame",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "yesOrNo-polygon",
+            "attr": {
+                "label": "是否有选房页"
+            }
+        },
+        {
+            "data": {
+                "seat": "4_7",
+                "position": { "x": 1060, "y": 1080 },
+                "id": "57844106-d1be-42e0-8766-e61b5c864824",
+                "name": "changeToRoomGameFlowChart",
+                "changeToFlowChart": "roomGameBeforeConfig",
+                "size": {"w":160,"h":80},
+                "tipContent": "点击即可切换至 选房游戏流程 "
+            },
+            "shape": "changeToOtherFlowChart-rect",
+            "attr": {
+                "label": "选房游戏流程"
+            }
+        },
+        {
+            "data": {
+                "seat": "5_1",
+                "position": { "x": 1300, "y": 240 },
+                "id": "079093bd-245f-46f6-8df9-5c9434944256",
+                "name": "directConnectByURL",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "startOrEnd-rect",
+            "attr": {
+                "label": "透过网址直连"
+            }
+        },
+        {
+            "data": {
+                "seat": "5_2",
+                "position": { "x": 1300, "y": 380 },
+                "id": "c72a8288-3707-4e42-9f04-ffe63da9fe94",
+                "name": "changeToNoRoomGameFlowChart",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "changeToOtherFlowChart-rect",
+            "attr": {
+                "label": "非选房游戏流程"
+            }
+        },
+        {
+            "data": {
+                "seat": "5_3",
+                "position": { "x": 1300, "y": 520 },
+                "id": "c8058157-67d1-48e2-8ac3-c0a7ca374bff",
+                "name": "popupRemaining",
+                "changeToFlowChart": "",
+                "size": null,
+                "tipContent": ""
+            },
+            "shape": "popupRemaining-image",
+            "attr": {
+                "label": ""
+            }
+        },
+        {
+            "data": {
+                "seat": "5_4",
+                "position": { "x": 1300, "y": 660 },
+                "id": "1da425b3-3993-4842-8449-bd26f14679e5",
+                "name": "popupReturnGame",
+                "changeToFlowChart": "",
+                "size": null,
+                "tipContent": ""
+            },
+            "shape": "popupReturnGame-image",
+            "attr": {
+                "label": ""
+            }
+        },
+        {
+            "data": {
+                "seat": "5_7",
+                "position": { "x": 1300, "y": 1080 },
+                "id": "86773d16-7c30-4fda-843f-ce6f9aad0a4c",
+                "name": "changeToNoRoomGameFlowChart",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "changeToOtherFlowChart-rect",
+            "attr": {
+                "label": "非选房游戏流程"
+            }
+        },
+        {
+            "data": {
+                "seat": "6_3",
+                "position": { "x": 1540, "y": 520 },
+                "id": "f799740e-cfd1-4300-acf4-c8563ad63e08",
+                "name": "stopInLobby",
+                "changeToFlowChart": "",
+                "size": {"w":160,"h":80},
+                "tipContent": ""
+            },
+            "shape": "stopFlowChart-rect",
+            "attr": {
+                "label": "停在大厅"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"2b02f247-bb82-44b3-9e97-faee371dbafb","port":"bottom"},
+            "target": {"cell":"c039e506-efdd-4866-b1f7-652b403ed694","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"c039e506-efdd-4866-b1f7-652b403ed694","port":"bottom"},
+            "target": {"cell":"bf2942d8-a508-4ed1-8a5d-4cfa36dc3871","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"bf2942d8-a508-4ed1-8a5d-4cfa36dc3871","port":"bottom"},
+            "target": {"cell":"9495d818-e24d-491b-aea8-42097e42a983","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"9495d818-e24d-491b-aea8-42097e42a983","port":"bottom"},
+            "target": {"cell":"7f790321-e372-4550-a5e2-6bb7244a32db","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"ad1e9b18-0519-4d87-90f5-2dd756786cec","port":"bottom"},
+            "target": {"cell":"63ca2f60-ac09-4eed-90f0-f604de707928","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"801979e0-ea0a-4337-95df-60554ca6073c","port":"bottom"},
+            "target": {"cell":"d27bf212-7e05-40f7-ac0e-511977e27abc","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"d27bf212-7e05-40f7-ac0e-511977e27abc","port":"bottom"},
+            "target": {"cell":"c651f813-cdf3-450f-9fd1-04f95e388bbc","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"c651f813-cdf3-450f-9fd1-04f95e388bbc","port":"bottom"},
+            "target": {"cell":"d8c13d89-87b7-4248-8753-a93342649dd9","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"d8c13d89-87b7-4248-8753-a93342649dd9","port":"bottom"},
+            "target": {"cell":"432a47af-49cd-45fb-9d6d-5620d0cb3241","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"432a47af-49cd-45fb-9d6d-5620d0cb3241","port":"bottom"},
+            "target": {"cell":"8894c9af-83f8-4343-9ef6-e5c63286674b","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"8894c9af-83f8-4343-9ef6-e5c63286674b","port":"bottom"},
+            "target": {"cell":"57844106-d1be-42e0-8766-e61b5c864824","port":"top"},
+            "data": {
+                "label": "是",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"079093bd-245f-46f6-8df9-5c9434944256","port":"bottom"},
+            "target": {"cell":"c72a8288-3707-4e42-9f04-ffe63da9fe94","port":"top"},
+            "data": {
+                "label": "",
+                "direction": "v"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"c651f813-cdf3-450f-9fd1-04f95e388bbc","port":"right"},
+            "target": {"cell":"c8058157-67d1-48e2-8ac3-c0a7ca374bff","port":"left"},
+            "data": {
+                "label": "是",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"c8058157-67d1-48e2-8ac3-c0a7ca374bff","port":"right"},
+            "target": {"cell":"f799740e-cfd1-4300-acf4-c8563ad63e08","port":"left"},
+            "data": {
+                "label": "",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "normal-edge",
+            "source": {"cell":"d8c13d89-87b7-4248-8753-a93342649dd9","port":"right"},
+            "target": {"cell":"1da425b3-3993-4842-8449-bd26f14679e5","port":"left"},
+            "data": {
+                "label": "是",
+                "direction": "h"
+            }
+        },
+        {
+            "shape": "lEdge",
+            "source": {"cell":"63ca2f60-ac09-4eed-90f0-f604de707928","port":"bottom"},
+            "target": {"cell":"432a47af-49cd-45fb-9d6d-5620d0cb3241","port":"left_bottom"},
+            "data": {
+                "label": "",
+                "direction": "l"
+            }
+        },
+        {
+            "shape": "lEdge",
+            "source": {"cell":"a92629dc-1dd0-4fed-995d-20bac184dbab","port":"bottom"},
+            "target": {"cell":"432a47af-49cd-45fb-9d6d-5620d0cb3241","port":"left_top"},
+            "data": {
+                "label": "",
+                "direction": "l"
+            }
+        },
+        {
+            "shape": "lEdge",
+            "source": {"cell":"8894c9af-83f8-4343-9ef6-e5c63286674b","port":"right"},
+            "target": {"cell":"86773d16-7c30-4fda-843f-ce6f9aad0a4c","port":"top"},
+            "data": {
+                "label": "否",
+                "direction": "l"
+            }
+        }
+    ] 
+}
