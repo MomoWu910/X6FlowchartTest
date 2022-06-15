@@ -170,6 +170,18 @@
 ![](../res/mdAssets/drawEdge_example3.png)
 
 
+```javascript
+    // 範例
+    let node1 = { cell: nodeArray[i], port: 'right' };
+    let node2 = { cell: nodeArray[i + 1], port: 'left' };
+
+    let edge = x6fc.drawEdge( node1, node2, 'z', registerName.zEdge, { label: 'Y' });
+```
+
+上面範例呈現的效果如下圖  
+![](../res/mdAssets/drawEdge_example4.png)
+
+
 
 ### 改變節點的文字
 

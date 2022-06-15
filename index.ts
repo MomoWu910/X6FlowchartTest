@@ -2,17 +2,26 @@ import FlowChartEditer from './src/flowChartEditer';
 import FlowChart from './src/x6FlowChart';
 
 const CONTAINER_NAME = 'editer-container';
-new FlowChartEditer(CONTAINER_NAME);
+// new FlowChartEditer(CONTAINER_NAME);
 
 import { registerName } from './src/constants/config'
 
-// startDraw();
+startDraw();
 
-// setTimeout(() => {
-//     const container = document.getElementById('container')!;
-//     container.style.display = 'none';
-//     startDraw2();
-// }, 3000);
+setTimeout(() => {
+    const container = document.getElementById('container')!;
+    container.style.display = 'none';
+    startDraw2();
+}, 3000);
+
+
+setTimeout(() => {
+    const container2 = document.getElementById('container2')!;
+    container2.style.display = 'none';
+    const container = document.getElementById('container')!;
+    container.style.display = '';
+
+}, 6000);
 
 function startDraw() {
 
@@ -23,6 +32,7 @@ function startDraw() {
     let start_y = 0;
     let increase_x = 400;
     let increase_y = 200;
+    let allNodeCounts = 2;
     let oneLineNum = 5;
 
     const arr = ['按下確認修改玩家頭像按鈕結果', 'Btn_Base_PersonalNamePopup_ConfirmResult', 'Btn_Base_', 'Btn_Base_PersonalNamePopup', 'Btn'];
@@ -44,7 +54,7 @@ function startDraw() {
     };
     // 開始繪製node
     let nodeArray: any[] = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < allNodeCounts; i++) {
 
         // let event_name = '按下確認修改玩家頭像按鈕結果Btn_Base_PersonalNamePopup';
         // let event_name = arr[i % 4] + i;
@@ -106,12 +116,12 @@ function startDraw() {
         let direct = (i + 1) % oneLineNum == 0 ? 'v' : 'h';
 
         // all
-        let edge = x6fc.drawEdge(
-            node1,
-            node2,
-            direct,
-            registerName.normalEdge,
-        );
+        // let edge = x6fc.drawEdge(
+        //     node1,
+        //     node2,
+        //     direct,
+        //     registerName.normalEdge,
+        // );
 
         // L
         // let edge = x6fc.drawEdge(
@@ -148,6 +158,15 @@ function startDraw() {
         //     registerName.cRightEdge,
         //     { label: 'Y' }
         // );
+
+        // z
+        let edge = x6fc.drawEdge(
+            { cell: node1, port: 'right' },
+            { cell: node2, port: 'left' },
+            'z',
+            registerName.zEdge,
+            { label: 'Y' }
+        );
 
         x6fc.setEdgeClickEvenCallback(edge, () => {
             console.log('/////test Edge Callback');
@@ -321,12 +340,12 @@ function getDrawNodePosition(start_x, start_y, diff_x, diff_y, maxRow, index) {
 
     //  行列都有了，可以算出位置了
     // 斜向
-    // position.x = start_x + index * 1.5 * diff_x;
-    // position.y = start_y + index * 1.5 * diff_y;
+    position.x = start_x + index * 1 * diff_x;
+    position.y = start_y + index * 0.75 * diff_y;
 
     // normal
-    position.x = start_x + row * diff_x;
-    position.y = start_y + column * diff_y;
+    // position.x = start_x + row * diff_x;
+    // position.y = start_y + column * diff_y;
 
     return position;
 }

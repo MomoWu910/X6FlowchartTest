@@ -1,6 +1,6 @@
 import { Graph, Registry, Shape, Addon, Vector, EdgeView, Cell, Node, Edge } from '@antv/x6';
 import { insertCss } from 'insert-css';
-import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
+import { cssConfig, containerCSSConfig, colorConfig, zIndex, registerName, PORTS } from './constants';
 import { ImageKey } from './constants/assets';
 import _ from 'lodash';
 
@@ -477,36 +477,61 @@ export default class FlowChart {
             sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkV ? 'bottom' : 'top') };
             targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkV ? 'top' : 'bottom') };
         }
-        if (direction === 'h' || direction === 'H') {
+        else if (direction === 'h' || direction === 'H') {
             // 檢查方向，source在左方那就從 right->left，在右方就 left->right
             // 右方的x比較大
             let checkH = (sourceX - targetX) < 0;
             sourceCheck = { cell: source.cell ? source.cell : source, port: source.cell && source.port ? source.port : (checkH ? 'right' : 'left') };
             targetCheck = { cell: target.cell ? target.cell : target, port: target.cell && target.port ? target.port : (checkH ? 'left' : 'right') };
         }
-        if (direction === 'l' || direction === 'L' || direction === 'c' || direction === 'C') {
+        else {
             sourceCheck = { cell: source.cell, port: source.port };
             targetCheck = { cell: target.cell, port: target.port };
         }
 
-        const edge = this.graph.addEdge({
-            shape: shape,
-            source: sourceCheck,
-            target: targetCheck,
-            attrs: {
-                label: {
-                    text: '',
-                    fontSize: DEFAULT_FONTSIZE,
+        const edge = (direction === 'z' || direction === 'Z') ?
+            this.graph.addEdge({
+                shape: shape,
+                source: sourceCheck,
+                target: targetCheck,
+                attrs: {
+                    label: {
+                        text: '',
+                        fontSize: DEFAULT_FONTSIZE,
+                    }
+                },
+                data: {
+                    direction: direction,
+                    sourceSeat: data.sourceSeat ? data.sourceSeat : '',
+                    targetSeat: data.targetSeat ? data.targetSeat : '',
+                    sourcePort: sourceCheck.port,
+                    targetPort: targetCheck.port,
+                },
+                // router: {
+                //     name: 'manhattan',
+                //     args: {
+                //         startDirections: [sourceCheck.port],
+                //         endDirections: [targetCheck.port],
+                //     },
+                // }
+            }) : this.graph.addEdge({
+                shape: shape,
+                source: sourceCheck,
+                target: targetCheck,
+                attrs: {
+                    label: {
+                        text: '',
+                        fontSize: DEFAULT_FONTSIZE,
+                    }
+                },
+                data: {
+                    direction: direction,
+                    sourceSeat: data.sourceSeat ? data.sourceSeat : '',
+                    targetSeat: data.targetSeat ? data.targetSeat : '',
+                    sourcePort: sourceCheck.port,
+                    targetPort: targetCheck.port,
                 }
-            },
-            data: {
-                direction: direction,
-                sourceSeat: data.sourceSeat ? data.sourceSeat : '',
-                targetSeat: data.targetSeat ? data.targetSeat : '',
-                sourcePort: sourceCheck.port,
-                targetPort: targetCheck.port,
-            }
-        });
+            });
 
         if (data && data.label) {
             if (data.label === 'n' || data.label === 'N') edge.appendLabel('否');
@@ -805,7 +830,7 @@ export default class FlowChart {
             keyboard: true,                                         // 键盘快捷键
             clipboard: true,                                        // 剪切板
             history: true,                                          // 撤销/重做
-            autoResize: true
+            autoResize: false
         });
 
         this.graph = graph;
@@ -1443,6 +1468,34 @@ export default class FlowChart {
             );
         }
 
+        if (!Edge.registry.exist(registerName.zEdge)) {
+            // 轉兩次彎Z型線
+            Graph.registerEdge(
+                registerName.zEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'er',
+                        args: {
+                            offset: 'center'
+                        },
+                    },
+                    attrs: {
+                        line: {
+                            stroke: this.theme === 'dark' ? '#ffffff' : '#000000',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
         if (!Edge.registry.exist(registerName.connectorEdge)) {
             // 編輯器節點連接時的的線
             Graph.registerEdge(
@@ -1477,6 +1530,8 @@ export default class FlowChart {
         backBtn.id = BACK_TO_PREPAGE_BTN_NAME;
         backBtn.textContent = 'back';
         container.appendChild(backBtn);
+        const css = `#${canvasId} ${containerCSSConfig}`;
+        insertCss(css);
         this.backBtn = backBtn;
     }
 
@@ -1510,6 +1565,7 @@ export default class FlowChart {
             #${canvasId}-code-graph-container {
                 width: 100%;
                 height: 100%;
+                flex: 1;
             }
             #stencil {
                 width: 180px;
@@ -1521,7 +1577,7 @@ export default class FlowChart {
                 width: 1200px;
                 height: 800px;
             }
-            #container #backToPrePage{
+            #backToPrePage{
                 width: 50px;
                 height: 25px;
                 position: fixed;

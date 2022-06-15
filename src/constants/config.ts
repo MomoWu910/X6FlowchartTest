@@ -19,13 +19,6 @@ export const cssConfig =
         width: 1600px;
         height: 1200px;
     }
-    #container #backToPrePage{
-        width: 50px;
-        height: 25px;
-        position: fixed;
-        z-index: 1;
-        margin: 10px;
-    }
     #toolbar button{
         left: 210px;
         width: 50px;
@@ -33,6 +26,15 @@ export const cssConfig =
         z-index: 3;
         margin: 7.5px;
     }
+`;
+export const containerCSSConfig =
+    `
+{
+    display: flex;
+    position: fixed;
+    border: 0px solid #dfe3e8;
+    z-index: 1;
+}
 `;
 // #endregion
 
@@ -72,6 +74,7 @@ export const zIndex = {
  * @param cLeftEdge 轉兩次彎ㄈ型線，左彎
  * @param cTopEdge 轉兩次彎ㄈ型線，上彎
  * @param cBottomEdge 轉兩次彎ㄈ型線，下彎
+ * @param zEdge 也是轉兩次彎，但也有智慧躲節點功能
  * @param connectorEdge 編輯器節點連接時的的線
  */
 export const registerName = {
@@ -98,6 +101,7 @@ export const registerName = {
     cLeftEdge: 'cLeftEdge',
     cTopEdge: 'cTopEdge',
     cBottomEdge: 'cBottomEdge',
+    zEdge: 'zEdge',
     connectorEdge: 'connectorEdge',
 }
 

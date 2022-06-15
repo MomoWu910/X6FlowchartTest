@@ -1311,6 +1311,34 @@ export default class FlowChartEditer {
             );
         }
 
+        if (!Edge.registry.exist(registerName.zEdge)) {
+            // 轉兩次彎Z型線
+            Graph.registerEdge(
+                registerName.zEdge,
+                {
+                    inherit: 'edge',
+                    router: {
+                        name: 'er',
+                    },
+                    arg: {
+                        offset: 'center'
+                    },
+                    attrs: {
+                        line: {
+                            stroke: '#ffffff',
+                            strokeWidth: 2,
+                            targetMarker: {
+                                name: 'block',
+                                width: DEFAULT_FONTSIZE,
+                                height: 8,
+                            },
+                        },
+                    },
+                    zIndex: zIndex.EDGE
+                }
+            );
+        }
+
         if (!Edge.registry.exist(registerName.connectorEdge)) {
             // 編輯器節點連接時的的線
             Graph.registerEdge(

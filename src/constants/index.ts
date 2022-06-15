@@ -1,3 +1,3 @@
-import { cssConfig, colorConfig, zIndex, registerName, PORTS } from './config';
+import { cssConfig, containerCSSConfig, colorConfig, zIndex, registerName, PORTS } from './config';
 
-export { cssConfig, colorConfig, zIndex, registerName, PORTS };
+export { cssConfig, containerCSSConfig, colorConfig, zIndex, registerName, PORTS };
